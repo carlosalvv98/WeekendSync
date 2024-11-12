@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, CalendarDays, Info, Copy, Trash2, Sun, Moon } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarDays, Info, Copy, Trash2,} from 'lucide-react';
 import DatePicker from 'react-datepicker';
-import ViewSwitcher from './components/ViewSwitcher';
 import DarkModeSwitch from './components/DarkModeSwitch';
+import ViewSwitcher from './components/ViewSwitcher';
 
 
 
-const Calendar = () => {
+const Calendar = ({ darkMode, setDarkMode }) => {
   // =============== Core State ===============
   const [currentDate, setCurrentDate] = useState(new Date());
   const [availability, setAvailability] = useState({});
@@ -23,11 +23,6 @@ const Calendar = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartDay, setDragStartDay] = useState(null);
   const [dragEndDay, setDragEndDay] = useState(null);
-  const [darkMode, setDarkMode] = useState(() => {
-  const saved = localStorage.getItem('calendarDarkMode');
-    return saved ? JSON.parse(saved) : false;
-  });
-  
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -532,29 +527,26 @@ const ListView = () => {
     return () => document.removeEventListener('mouseup', handleMouseUp);
   }, [isDragging, dragStartDay, dragEndDay]);
 
-  useEffect(() => {
-    localStorage.setItem('calendarDarkMode', JSON.stringify(darkMode));
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
-
   // =============== Main Render ===============
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-gray-800 dark:bg-white rounded-lg shadow p-6 text-white dark:text-gray-800">
       {/* Calendar Header */}
 <div className="flex justify-between items-center mb-6">
-  <div className="space-y-2">
-    <h2 className="text-2xl font-bold">
-      {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-    </h2>
-    <ViewSwitcher 
-      currentView={currentView}
-      onViewChange={setCurrentView}
-    />
-  </div>
+<div className="space-y-2">
+  <h2 className="text-2xl font-bold">
+    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+  </h2>
+  <ViewSwitcher 
+    currentView={currentView}
+    onViewChange={setCurrentView}
+  />
+</div>
+  
+  <div className="flex justify-end mb-4">
+</div>
+
+<div className="flex items-center gap-2 relative"></div>
+
   <div className="flex items-center gap-2 relative">  {/* Added relative here */}
     <div className="relative">
       <button 
@@ -586,13 +578,7 @@ const ListView = () => {
     <span>Clear All</span>
   </button>
 
-{/* Dark mode toggle */}
-<button 
-    onClick={() => setDarkMode(prev => !prev)}
-    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-  >
-    {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-  </button>
+
 
   <div className="h-6 w-px bg-gray-200"></div>
 
@@ -666,33 +652,33 @@ const ListView = () => {
 
   return (
     <div 
-      key={day} 
-      className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
-        ${isToday(day) ? 'border-blue-500 border-2' : ''}
-        ${isPastDay(day) ? 'bg-gray-50' : ''}
-        ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : ''}
-        ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
-        ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
-        ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
-      onClick={(e) => {
-        if (copyMode) {
-          handleDaySelection(day);
-        } else {
-          handleDayClick(day, e);
-        }
-      }}
-      onMouseDown={() => {
-        if (copyMode) {
-          setIsDragging(true);
-          setDragStartDay(day);
-        }
-      }}
-      onMouseEnter={() => {
-        if (isDragging && copyMode) {
-          handleDaySelection(day);
-        }
-      }}
-    >
+  key={day} 
+  className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
+    ${isToday(day) ? 'border-blue-500 border-2' : ''}
+    ${isPastDay(day) ? 'bg-gray-50 dark:bg-gray-900' : 'bg-white dark:bg-gray-800'}
+    ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : ''}
+    ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
+    ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
+    ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
+  onClick={(e) => {
+    if (copyMode) {
+      handleDaySelection(day);
+    } else {
+      handleDayClick(day, e);
+    }
+  }}
+  onMouseDown={() => {
+    if (copyMode) {
+      setIsDragging(true);
+      setDragStartDay(day);
+    }
+  }}
+  onMouseEnter={() => {
+    if (isDragging && copyMode) {
+      handleDaySelection(day);
+    }
+  }}
+>
       {/* Copy button */}
       {!isPastDay(day) && !copyMode && dayData && (
         <button

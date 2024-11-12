@@ -22,7 +22,7 @@ const DarkModeSwitch = ({ darkMode, onChange }) => {
           `}
         />
       </button>
-      <Sun size={16} className="text-gray-500" />
+      <Sun size={16} className="text-gray-00" />
     </div>
   );
 };
