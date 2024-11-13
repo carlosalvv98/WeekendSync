@@ -43,20 +43,6 @@ function App() {
   <User size={24} className="text-gray-600" />
 </button>
 
-<button 
-  onClick={() => setCurrentPage('profile')}
-  className={`p-2 rounded-lg ${
-    currentPage === 'profile' 
-    ? 'bg-blue-100 dark:bg-blue-800' 
-    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-  }`}
->
-  <User size={24} className={
-    currentPage === 'profile' 
-    ? 'text-blue-600 dark:text-blue-300' 
-    : 'text-gray-600 dark:text-white'
-  } />
-</button>
             </div>
           </div>
         </div>

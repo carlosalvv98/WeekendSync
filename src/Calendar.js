@@ -249,32 +249,26 @@ const Calendar = () => {
 
   return (
     <div key={date.toString()} className="space-y-2 relative">
-      {timeSlots.map((timeSlot, index) => (
-        <button
-          key={timeSlot}
-          onClick={(e) => handleTimeSlotClick(date.getDate(), timeSlot, e)}
-          disabled={isPast}
-          className={`
-            h-20 w-full rounded text-xs
-            ${getColorForStatus(dayData?.[timeSlot])}
-            ${isPast ? 'opacity-50 cursor-not-allowed' : ''}
-            ${index !== timeSlots.length - 1 ? 'border-b border-dotted border-gray-300' : ''}
-            ${isToday(date.getDate()) ? 'border-2 border-blue-500' : ''}
-          `}
-        >
-          {dayData?.[timeSlot]?.status === 'available' ? (
-            'Available'
-          ) : (
-            dayData?.[timeSlot]?.eventType && (
-              <span className="text-gray-600 truncate">
-                {eventTypes.find(e => e.id === dayData[timeSlot].eventType)?.label}
-              </span>
-            )
-          )}
-        </button>
-      ))}
-    </div>
-  );
+    {timeSlots.map((timeSlot, index) => (
+      <button
+        key={timeSlot}
+        onClick={(e) => handleTimeSlotClick(date.getDate(), timeSlot, e)}
+        disabled={isPast}
+        className={`h-20 w-full rounded text-xs ${getColorForStatus(dayData?.[timeSlot])} ${isPast ? 'opacity-50 cursor-not-allowed' : ''} ${index !== timeSlots.length - 1 ? 'border-b border-dotted border-gray-300' : ''} ${isToday(date.getDate()) ? 'border-2 border-blue-500' : ''}`}
+      >
+        {dayData?.[timeSlot]?.status === 'available' ? (
+          'Available'
+        ) : (
+          dayData?.[timeSlot]?.eventType && (
+            <span className="text-gray-600 truncate">
+              {eventTypes.find(e => e.id === dayData[timeSlot].eventType)?.label}
+            </span>
+          )
+        )}
+      </button>
+    ))}
+  </div>
+);
 })}
         </div>
       </div>
@@ -289,8 +283,7 @@ const ListView = () => {
     0
   ).getDate();
   
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
-    .sort((a, b) => a - b);
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1).sort((a, b) => a - b);
 
   return (
     <div className="space-y-2">
