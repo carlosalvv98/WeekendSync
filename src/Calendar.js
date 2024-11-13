@@ -655,14 +655,14 @@ const ListView = () => {
 
   return (
     <div 
-  key={day} 
-  className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group p-1
-    ${isToday(day) ? 'border-blue-500 border-2' : ''}
-    ${isPastDay(day) ? 'bg-gray-50' : 'bg-white'}
-    ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : ''}
-    ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
-    ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
-    ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
+      key={day} 
+      className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
+        ${isToday(day) ? 'border-blue-500 border-2' : ''}
+        ${isPastDay(day) ? 'bg-gray-50' : ''}
+        ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : ''}
+        ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
+        ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
+        ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
       onClick={(e) => {
         if (copyMode) {
           handleDaySelection(day);
@@ -703,20 +703,16 @@ const ListView = () => {
       </div>
                 
       {/* Time slots container */}
-      {fullDayEvent ? (
-  <div className={`flex-1 m-1 rounded ${
-    dayData.morning?.status === 'available' 
-      ? 'bg-green-100' 
-      : 'bg-red-100'
-  }`}>
-    <div className="p-2 text-xs">
-      {dayData.morning?.status === 'available' 
-        ? 'Available'
-        : dayData.morning?.eventType && 
-          eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
-    </div>
-  </div>
-) : (
+                {fullDayEvent ? (
+                  <div className="flex-1 p-1">
+                    <div className="text-xs text-gray-600 truncate">
+                      {dayData.morning?.status === 'available' 
+                        ? 'Available'
+                        : dayData.morning?.eventType && 
+                          eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
+                    </div>
+                  </div>
+                ) : (
         <div className="flex-1 flex flex-col gap-1 p-1">
           {timeSlots.map(timeSlot => {
             const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
