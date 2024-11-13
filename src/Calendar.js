@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, CalendarDays, Info, Copy, Trash2,} from 'lucide-react';
 import DatePicker from 'react-datepicker';
-import DarkModeSwitch from './components/DarkModeSwitch';
 import ViewSwitcher from './components/ViewSwitcher';
 
 
 
-const Calendar = ({ darkMode, setDarkMode }) => {
+const Calendar = () => {
   // =============== Core State ===============
   const [currentDate, setCurrentDate] = useState(new Date());
   const [availability, setAvailability] = useState({});
@@ -135,8 +134,14 @@ const Calendar = ({ darkMode, setDarkMode }) => {
   const getColorForStatus = (dayData, isFullDay = false) => {
     if (!dayData) return 'bg-white hover:bg-gray-50';
     switch (dayData.status) {
-      case 'available': return isFullDay ? 'bg-green-200' : 'bg-green-100 hover:bg-green-200';
-      case 'busy': return isFullDay ? 'bg-red-200' : 'bg-red-100 hover:bg-red-200';
+      case 'available': 
+        return isFullDay 
+          ? 'bg-green-200' // Make this more visible for full day
+          : 'bg-green-100 hover:bg-green-200';
+      case 'busy': 
+        return isFullDay 
+          ? 'bg-red-200'  // Make this more visible for full day
+          : 'bg-red-100 hover:bg-red-200';
       default: return 'bg-white hover:bg-gray-50';
     }
   };
@@ -529,7 +534,8 @@ const ListView = () => {
 
   // =============== Main Render ===============
   return (
-    <div className="bg-gray-800 dark:bg-white rounded-lg shadow p-6 text-white dark:text-gray-800">
+    <div className="bg-white rounded-lg shadow p-6">
+
       {/* Calendar Header */}
 <div className="flex justify-between items-center mb-6">
 <div className="space-y-2">
@@ -655,8 +661,8 @@ const ListView = () => {
   key={day} 
   className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
     ${isToday(day) ? 'border-blue-500 border-2' : ''}
-    ${isPastDay(day) ? 'bg-gray-50 dark:bg-gray-900' : 'bg-white dark:bg-gray-800'}
-    ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : ''}
+    ${isPastDay(day) ? 'bg-gray-50' : 'bg-white'}
+    ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : 'bg-white'}
     ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
     ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
     ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
@@ -699,29 +705,33 @@ const ListView = () => {
         {day}
       </div>
                 
-                {/* Time slots container */}
-                {fullDayEvent ? (
-                  <div className="flex-1 p-1">
-                    <div className="text-xs text-gray-600 truncate">
-                      {dayData.morning?.status === 'available' 
-                        ? 'Available'
-                        : dayData.morning?.eventType && 
-                          eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col gap-1 p-1">
-                    {timeSlots.map(timeSlot => {
-  const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-  return (
-    <button
-      key={timeSlot}
-      onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
-      disabled={isPastDay(day)}
-      className={`w-full rounded text-[10px] p-1 transition-colors 
-        ${getColorForStatus(availability[dateKey]?.[timeSlot])}
-        ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
-    >
+      {/* Time slots container */}
+      {fullDayEvent ? (
+      <div className="flex-1 p-1">
+    <div className={`text-xs ${
+      dayData.morning?.status === 'available' 
+        ? 'text-green-800' 
+        : 'text-red-800'
+    } truncate`}>
+      {dayData.morning?.status === 'available' 
+        ? 'Available'
+        : dayData.morning?.eventType && 
+          eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
+    </div>
+  </div>
+) : (
+  <div className="flex-1 flex flex-col gap-1 p-1">
+    {timeSlots.map(timeSlot => {
+      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+      return (
+        <button
+          key={timeSlot}
+          onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
+          disabled={isPastDay(day)}
+          className={`w-full rounded text-[10px] p-1 transition-colors 
+            ${getColorForStatus(availability[dateKey]?.[timeSlot])}
+            ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
       <div className="flex justify-between items-center">
         <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
         {availability[dateKey]?.[timeSlot]?.eventType && (
