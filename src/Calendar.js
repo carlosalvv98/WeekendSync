@@ -134,14 +134,8 @@ const Calendar = () => {
   const getColorForStatus = (dayData, isFullDay = false) => {
     if (!dayData) return 'bg-white hover:bg-gray-50';
     switch (dayData.status) {
-      case 'available': 
-        return isFullDay 
-          ? 'bg-green-200' // Make this more visible for full day
-          : 'bg-green-100 hover:bg-green-200';
-      case 'busy': 
-        return isFullDay 
-          ? 'bg-red-200'  // Make this more visible for full day
-          : 'bg-red-100 hover:bg-red-200';
+      case 'available': return isFullDay ? 'bg-green-100' : 'bg-green-100 hover:bg-green-200';
+      case 'busy': return isFullDay ? 'bg-red-100' : 'bg-red-100 hover:bg-red-200';
       default: return 'bg-white hover:bg-gray-50';
     }
   };
@@ -201,7 +195,11 @@ const Calendar = () => {
 {weekDays.map(date => {
   const dateKey = getDateKey(date.getFullYear(), date.getMonth(), date.getDate());
   const dayData = availability[dateKey];
-  const isPast = date < new Date();
+  const isPast = date < new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
   const isFullDay = isFullDayEvent(dayData);
 
   if (isFullDay) {
@@ -211,41 +209,40 @@ const Calendar = () => {
           <div className="border-b border-dotted border-gray-300" style={{ top: '33.33%' }}></div>
           <div className="border-b border-dotted border-gray-300" style={{ top: '66.66%' }}></div>
         </div>
-        <button
-          onClick={(e) => handleDayClick(date.getDate(), e)}
-          disabled={isPast}
-          className={`
-            h-64 w-full rounded text-xs relative
-            ${getColorForStatus(dayData?.morning, true)}
-            ${isPast ? 'opacity-50 cursor-not-allowed' : ''}
-            ${isToday(date.getDate()) ? 'border-2 border-blue-500' : ''}
-          `}
-        >
-          <div className="h-full flex items-center justify-center">
-            {dayData.morning?.status === 'available' ? (
-              'Available'
-            ) : (
-              dayData.morning?.eventType && (
-                <span className="text-gray-600">
-                  {eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
-                </span>
-              )
-            )}
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setAvailability(prev => {
-                const newAvailability = { ...prev };
-                delete newAvailability[dateKey];
-                return newAvailability;
-              });
-            }}
-            className="absolute top-2 right-2 p-1 rounded-full bg-white shadow opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <span className="text-xs">×</span>
-          </button>
-        </button>
+        <div
+  onClick={(e) => handleDayClick(date.getDate(), e)}
+  className={`
+    h-64 w-full rounded text-xs relative cursor-pointer
+    ${getColorForStatus(dayData?.morning, true)}
+    ${isPast ? 'opacity-50 pointer-events-none' : ''}
+    ${isToday(date.getDate()) ? 'border-2 border-blue-500' : ''}
+  `}
+>
+  <div className="h-full flex items-center justify-center">
+    {dayData.morning?.status === 'available' ? (
+      'Available'
+    ) : (
+      dayData.morning?.eventType && (
+        <span className="text-gray-600">
+          {eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
+        </span>
+      )
+    )}
+  </div>
+  <div
+    onClick={(e) => {
+      e.stopPropagation();
+      setAvailability(prev => {
+        const newAvailability = { ...prev };
+        delete newAvailability[dateKey];
+        return newAvailability;
+      });
+    }}
+    className="absolute top-2 right-2 p-1 rounded-full bg-white shadow opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+  >
+    <span className="text-xs">×</span>
+  </div>
+</div>
       </div>
     );
   }
@@ -649,7 +646,7 @@ const ListView = () => {
           ))}
 
           {/* Calendar days */}
-          {days.map(day => {
+{days.map(day => {
   const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
   const dayData = availability[dateKey];
   const fullDayEvent = isFullDayEvent(dayData);
@@ -659,32 +656,32 @@ const ListView = () => {
   return (
     <div 
   key={day} 
-  className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
+  className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group p-1
     ${isToday(day) ? 'border-blue-500 border-2' : ''}
     ${isPastDay(day) ? 'bg-gray-50' : 'bg-white'}
-    ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : 'bg-white'}
+    ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : ''}
     ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
     ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
     ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
-  onClick={(e) => {
-    if (copyMode) {
-      handleDaySelection(day);
-    } else {
-      handleDayClick(day, e);
-    }
-  }}
-  onMouseDown={() => {
-    if (copyMode) {
-      setIsDragging(true);
-      setDragStartDay(day);
-    }
-  }}
-  onMouseEnter={() => {
-    if (isDragging && copyMode) {
-      handleDaySelection(day);
-    }
-  }}
->
+      onClick={(e) => {
+        if (copyMode) {
+          handleDaySelection(day);
+        } else {
+          handleDayClick(day, e);
+        }
+      }}
+      onMouseDown={() => {
+        if (copyMode) {
+          setIsDragging(true);
+          setDragStartDay(day);
+        }
+      }}
+      onMouseEnter={() => {
+        if (isDragging && copyMode) {
+          handleDaySelection(day);
+        }
+      }}
+    >
       {/* Copy button */}
       {!isPastDay(day) && !copyMode && dayData && (
         <button
@@ -699,7 +696,7 @@ const ListView = () => {
         </button>
       )}
 
-      {/* Rest of your existing day content */}
+      {/* Day number */}
       <div className={`p-1 font-medium ${isToday(day) ? 'text-blue-500' : ''} 
         ${isPastDay(day) ? 'text-gray-400' : ''}`}>
         {day}
@@ -707,12 +704,12 @@ const ListView = () => {
                 
       {/* Time slots container */}
       {fullDayEvent ? (
-      <div className="flex-1 p-1">
-    <div className={`text-xs ${
-      dayData.morning?.status === 'available' 
-        ? 'text-green-800' 
-        : 'text-red-800'
-    } truncate`}>
+  <div className={`flex-1 m-1 rounded ${
+    dayData.morning?.status === 'available' 
+      ? 'bg-green-100' 
+      : 'bg-red-100'
+  }`}>
+    <div className="p-2 text-xs">
       {dayData.morning?.status === 'available' 
         ? 'Available'
         : dayData.morning?.eventType && 
@@ -720,34 +717,34 @@ const ListView = () => {
     </div>
   </div>
 ) : (
-  <div className="flex-1 flex flex-col gap-1 p-1">
-    {timeSlots.map(timeSlot => {
-      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-      return (
-        <button
-          key={timeSlot}
-          onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
-          disabled={isPastDay(day)}
-          className={`w-full rounded text-[10px] p-1 transition-colors 
-            ${getColorForStatus(availability[dateKey]?.[timeSlot])}
-            ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-      <div className="flex justify-between items-center">
-        <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
-        {availability[dateKey]?.[timeSlot]?.eventType && (
-          <span className="text-[10px] text-gray-600 truncate ml-1">
-            ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
-          </span>
-        )}
-      </div>
-    </button>
-  );
-})}
-                  </div>
-                )}
-              </div>
+        <div className="flex-1 flex flex-col gap-1 p-1">
+          {timeSlots.map(timeSlot => {
+            const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+            return (
+              <button
+                key={timeSlot}
+                onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
+                disabled={isPastDay(day)}
+                className={`w-full rounded text-[10px] p-1 transition-colors 
+                  ${getColorForStatus(availability[dateKey]?.[timeSlot])}
+                  ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <div className="flex justify-between items-center">
+                  <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
+                  {availability[dateKey]?.[timeSlot]?.eventType && (
+                    <span className="text-[10px] text-gray-600 truncate ml-1">
+                      ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
+                    </span>
+                  )}
+                </div>
+              </button>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+})}
         </div>
       ) : currentView === 'week' ? (
         <WeekView />
