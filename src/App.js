@@ -38,13 +38,18 @@ function App() {
 
   const checkIfAdmin = async (userId) => {
     try {
+      console.log('Checking admin status for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('is_admin')
         .eq('id', userId)
         .single();
-        
-      if (error) throw error;
+          
+      if (error) {
+        console.error('Admin check error:', error);
+        throw error;
+      }
+      console.log('Admin check result:', data);
       setIsAdmin(data.is_admin);
     } catch (error) {
       console.error('Error checking admin status:', error);
@@ -115,7 +120,7 @@ function App() {
           </div>
         )}
         {currentPage === 'profile' && <Profile session={session} />}
-        {currentPage === 'admin' && isAdmin && <AdminDashboard />}
+        {currentPage === 'admin' && isAdmin && <AdminDashboard session={session} />}
         </main>
     </div>
   );

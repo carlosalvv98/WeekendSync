@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, CalendarDays, Info, Copy, Trash2,} from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import ViewSwitcher from './components/ViewSwitcher';
+import AvailabilityModal from './components/AvailabilityModal';
 
 
 
@@ -22,6 +23,16 @@ const Calendar = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartDay, setDragStartDay] = useState(null);
   const [dragEndDay, setDragEndDay] = useState(null);
+  const [selectedEventType, setSelectedEventType] = useState(null);
+const [showEventDetails, setShowEventDetails] = useState(false);
+const [eventDetails, setEventDetails] = useState({
+  travel_destination: '',
+  restaurant_name: '',
+  restaurant_location: '',
+  event_name: '',
+  event_location: '',
+  notes: ''
+});
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -524,335 +535,244 @@ const ListView = () => {
 
   // =============== Main Render ===============
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-
-      {/* Calendar Header */}
-<div className="flex justify-between items-center mb-6">
-<div className="space-y-2">
-  <h2 className="text-2xl font-bold">
-    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-  </h2>
-  <ViewSwitcher 
-    currentView={currentView}
-    onViewChange={setCurrentView}
-  />
-</div>
-  
-  <div className="flex justify-end mb-4">
-</div>
-
-<div className="flex items-center gap-2 relative"></div>
-
-  <div className="flex items-center gap-2 relative">  {/* Added relative here */}
-    <div className="relative">
-      <button 
-        onClick={handleBulkSelect}
-        onMouseEnter={() => setShowTip(true)}
-        onMouseLeave={() => setShowTip(false)}
-        className="p-2 px-4 rounded-lg bg-purple-100 hover:bg-purple-200 flex items-center gap-2"
-      >
-        <CalendarDays size={16} />
-        <span>Bulk Select</span>
-      </button>
-            {showTip && (
-              <div className="absolute z-10 w-64 bg-gray-800 text-white text-xs rounded p-2 -bottom-20 left-0">
-                Pro Tips:
-                <ul className="mt-1 ml-2">
-                  <li>• Select a date range for bulk updates</li>
-                  <li>• Click a day to set all time slots at once</li>
-                  <li>• Click individual time slots for precise control</li>
-                </ul>
-              </div>
-            )}
-          </div>
-
-          <button 
-    onClick={handleClearAll}
-    className="p-2 px-4 rounded-lg bg-red-100 hover:bg-red-200 flex items-center gap-2"
-  >
-    <Trash2 size={16} />
-    <span>Clear All</span>
-  </button>
-
-
-
-  <div className="h-6 w-px bg-gray-200"></div>
-
-{/* Add the new copy mode controls */}
-{copyMode && (
-      <div className="absolute top-full right-0 mt-2 flex items-center gap-2 bg-blue-50 p-2 rounded-lg shadow z-10">
-        <span className="text-sm text-gray-600">Select days to paste availability</span>
-        <button 
-          onClick={handlePaste}
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-        >
-          Paste
-        </button>
-        <button 
-          onClick={() => {
-            setCopyMode(false);
-            setSelectedDays([]);
-            setCopySource(null);
-          }}
-          className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-        >
-          Cancel
-        </button>
-      </div>
-    )}
-
-          <div className="h-6 w-px bg-gray-200"></div>
-          <button 
-            onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
-            className="p-2 rounded-lg hover:bg-gray-100"
-          >
-            ←
-          </button>
-          <button 
-            onClick={() => setCurrentDate(new Date())}
-            className="p-2 px-4 rounded-lg bg-blue-100 hover:bg-blue-200"
-          >
-            Today
-          </button>
-          <button 
-            onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
-            className="p-2 rounded-lg hover:bg-gray-100"
-          >
-            →
-          </button>
-        </div>
-      </div>
-
-      {/* View Container */}
-      {currentView === 'month' ? (
-        <div className="grid grid-cols-7 gap-2">
-          {/* Weekday headers */}
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="text-center font-medium text-gray-500">
-              {day}
-            </div>
-          ))}
-          
-          {/* Empty cells for days before start of month */}
-          {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay() }, (_, i) => (
-            <div key={`empty-${i}`} className="h-32"></div>
-          ))}
-
-          {/* Calendar days */}
-{days.map(day => {
-  const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-  const dayData = availability[dateKey];
-  const fullDayEvent = isFullDayEvent(dayData);
-  const isSelected = selectedDays.includes(day);
-  const isCopySource = copySource === day;
-
-  return (
-    <div 
-      key={day} 
-      className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
-        ${isToday(day) ? 'border-blue-500 border-2' : ''}
-        ${isPastDay(day) ? 'bg-gray-50' : ''}
-        ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : ''}
-        ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
-        ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
-        ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
-      onClick={(e) => {
-        if (copyMode) {
-          handleDaySelection(day);
-        } else {
-          handleDayClick(day, e);
-        }
-      }}
-      onMouseDown={() => {
-        if (copyMode) {
-          setIsDragging(true);
-          setDragStartDay(day);
-        }
-      }}
-      onMouseEnter={() => {
-        if (isDragging && copyMode) {
-          handleDaySelection(day);
-        }
-      }}
-    >
-      {/* Copy button */}
-      {!isPastDay(day) && !copyMode && dayData && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleCopy(day);
-          }}
-          className="absolute top-1 right-1 p-1 rounded-full bg-white shadow-md 
-            opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
-        >
-          <Copy size={14} />
-        </button>
-      )}
-
-      {/* Day number */}
-      <div className={`p-1 font-medium ${isToday(day) ? 'text-blue-500' : ''} 
-        ${isPastDay(day) ? 'text-gray-400' : ''}`}>
-        {day}
-      </div>
-                
-      {/* Time slots container */}
-                {fullDayEvent ? (
-                  <div className="flex-1 p-1">
-                    <div className="text-xs text-gray-600 truncate">
-                      {dayData.morning?.status === 'available' 
-                        ? 'Available'
-                        : dayData.morning?.eventType && 
-                          eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
-                    </div>
-                  </div>
-                ) : (
-        <div className="flex-1 flex flex-col gap-1 p-1">
-          {timeSlots.map(timeSlot => {
-            const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-            return (
-              <button
-                key={timeSlot}
-                onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
-                disabled={isPastDay(day)}
-                className={`w-full rounded text-[10px] p-1 transition-colors 
-                  ${getColorForStatus(availability[dateKey]?.[timeSlot])}
-                  ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <div className="flex justify-between items-center">
-                  <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
-                  {availability[dateKey]?.[timeSlot]?.eventType && (
-                    <span className="text-[10px] text-gray-600 truncate ml-1">
-                      ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-})}
-        </div>
-      ) : currentView === 'week' ? (
-        <WeekView />
-      ) : (
-        <ListView />
-      )}
-
-      {/* Availability Modal */}
-{showEventModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div className="bg-white rounded-lg p-6 max-w-lg w-full"> {/* Made modal wider */}
-      <h3 className="text-lg font-bold mb-4">
-        {isBulkSelect ? 'Bulk Selection' : 'Set Availability'}
-      </h3>
-      
-      <div className="flex flex-col items-center"> {/* Center container */}
-        {isBulkSelect && (
-          <div className="mb-6"> {/* Increased margin */}
-            <DatePicker
-              selectsRange={true}
-              startDate={startDate}
-              endDate={endDate}
-              onChange={(update) => {
-                setDateRange(update);
-              }}
-              isClearable={true}
-              className="w-full p-2 border rounded"
-              placeholderText="Select date range"
-              minDate={new Date()}
-              dayClassName={getDayClassName}
-              inline
+    <>
+      <div className="bg-white rounded-lg shadow p-6">
+        {/* Calendar Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h2>
+            <ViewSwitcher 
+              currentView={currentView}
+              onViewChange={setCurrentView}
             />
           </div>
-        )}
-
-        <div className="w-full">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">What's your Status?</h4>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleSetAvailability('available')}
-              className="p-2 bg-green-100 rounded hover:bg-green-200 text-left"
+  
+          <div className="flex items-center gap-2 relative">
+            <div className="relative">
+              <button 
+                onClick={handleBulkSelect}
+                onMouseEnter={() => setShowTip(true)}
+                onMouseLeave={() => setShowTip(false)}
+                className="p-2 px-4 rounded-lg bg-purple-100 hover:bg-purple-200 flex items-center gap-2"
+              >
+                <CalendarDays size={16} />
+                <span>Bulk Select</span>
+              </button>
+              {showTip && (
+                <div className="absolute z-10 w-64 bg-gray-800 text-white text-xs rounded p-2 -bottom-20 left-0">
+                  Pro Tips:
+                  <ul className="mt-1 ml-2">
+                    <li>• Select a date range for bulk updates</li>
+                    <li>• Click a day to set all time slots at once</li>
+                    <li>• Click individual time slots for precise control</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+  
+            <button 
+              onClick={handleClearAll}
+              className="p-2 px-4 rounded-lg bg-red-100 hover:bg-red-200 flex items-center gap-2"
             >
-              Available
+              <Trash2 size={16} />
+              <span>Clear All</span>
             </button>
-            <button
-              onClick={() => handleSetAvailability('busy', 'traveling')}
-              className="p-2 bg-red-100 rounded hover:bg-red-200 text-left"
+  
+            <div className="h-6 w-px bg-gray-200"></div>
+  
+            {copyMode && (
+              <div className="absolute top-full right-0 mt-2 flex items-center gap-2 bg-blue-50 p-2 rounded-lg shadow z-10">
+                <span className="text-sm text-gray-600">Select days to paste availability</span>
+                <button 
+                  onClick={handlePaste}
+                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                >
+                  Paste
+                </button>
+                <button 
+                  onClick={() => {
+                    setCopyMode(false);
+                    setSelectedDays([]);
+                    setCopySource(null);
+                  }}
+                  className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+  
+            <div className="h-6 w-px bg-gray-200"></div>
+            
+            <button 
+              onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
+              className="p-2 rounded-lg hover:bg-gray-100"
             >
-              Travelling
+              ←
             </button>
-            <button
-              onClick={() => handleSetAvailability('busy', 'lunch')}
-              className="p-2 bg-red-100 rounded hover:bg-red-200 text-left"
+            <button 
+              onClick={() => setCurrentDate(new Date())}
+              className="p-2 px-4 rounded-lg bg-blue-100 hover:bg-blue-200"
             >
-              Lunch
+              Today
             </button>
-            <button
-              onClick={() => handleSetAvailability('busy', 'dinner')}
-              className="p-2 bg-red-100 rounded hover:bg-red-200 text-left"
+            <button 
+              onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
+              className="p-2 rounded-lg hover:bg-gray-100"
             >
-              Dinner
-            </button>
-            <button
-              onClick={() => handleSetAvailability('busy', 'wedding')}
-              className="p-2 bg-red-100 rounded hover:bg-red-200 text-left"
-            >
-              Wedding
-            </button>
-            <button
-              onClick={() => handleSetAvailability('busy', 'event')}
-              className="p-2 bg-red-100 rounded hover:bg-red-200 text-left"
-            >
-              Event
-            </button>
-            <button
-              onClick={() => handleSetAvailability('busy', 'family')}
-              className="p-2 bg-red-100 rounded hover:bg-red-200 text-left"
-            >
-              Family Time
-            </button>
-            <button
-              onClick={() => handleSetAvailability('busy', 'work')}
-              className="p-2 bg-red-100 rounded hover:bg-red-200 text-left"
-            >
-              Work
-            </button>
-            <button
-              onClick={() => handleSetAvailability('busy', 'party')}
-              className="p-2 bg-red-100 rounded hover:bg-red-200 text-left"
-            >
-              Party
-            </button>
-            <button
-              onClick={() => handleSetAvailability('busy', 'other')}
-              className="p-2 bg-red-100 rounded hover:bg-red-200 text-left"
-            >
-              Other
+              →
             </button>
           </div>
-
-          
-          
-          <button
-            onClick={() => {
-              setShowEventModal(false);
-              setIsBulkSelect(false);
-              setSelectedDay(null);
-              setDateRange([null, null]);
-            }}
-            className="w-full p-2 bg-gray-100 rounded hover:bg-gray-200 mt-4"
-          >
-            Cancel
-          </button>
         </div>
+  
+        {/* View Container */}
+{currentView === 'month' ? (
+  <div className="grid grid-cols-7 gap-2">
+    {/* Weekday headers */}
+    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+      <div key={day} className="text-center font-medium text-gray-500">
+        {day}
       </div>
-    </div>
+    ))}
+    
+    {/* Empty cells for days before start of month */}
+    {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay() }, (_, i) => (
+      <div key={`empty-${i}`} className="h-32"></div>
+    ))}
+
+    {/* Calendar days */}
+    {days.map(day => {
+      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+      const dayData = availability[dateKey];
+      const fullDayEvent = isFullDayEvent(dayData);
+      const isSelected = selectedDays.includes(day);
+      const isCopySource = copySource === day;
+
+      return (
+        <div 
+          key={day} 
+          className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
+            ${isToday(day) ? 'border-blue-500 border-2' : ''}
+            ${isPastDay(day) ? 'bg-gray-50' : ''}
+            ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : ''}
+            ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
+            ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
+            ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
+          onClick={(e) => {
+            if (copyMode) {
+              handleDaySelection(day);
+            } else {
+              handleDayClick(day, e);
+            }
+          }}
+          onMouseDown={() => {
+            if (copyMode) {
+              setIsDragging(true);
+              setDragStartDay(day);
+            }
+          }}
+          onMouseEnter={() => {
+            if (isDragging && copyMode) {
+              handleDaySelection(day);
+            }
+          }}
+        >
+          {/* Copy button */}
+          {!isPastDay(day) && !copyMode && dayData && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopy(day);
+              }}
+              className="absolute top-1 right-1 p-1 rounded-full bg-white shadow-md 
+                opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+            >
+              <Copy size={14} />
+            </button>
+          )}
+
+          {/* Day number */}
+          <div className={`p-1 font-medium ${isToday(day) ? 'text-blue-500' : ''} 
+            ${isPastDay(day) ? 'text-gray-400' : ''}`}>
+            {day}
+          </div>
+                    
+          {/* Time slots container */}
+          {fullDayEvent ? (
+            <div className="flex-1 p-1">
+              <div className="text-xs text-gray-600 truncate">
+                {dayData.morning?.status === 'available' 
+                  ? 'Available'
+                  : dayData.morning?.eventType && 
+                    eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col gap-1 p-1">
+              {timeSlots.map(timeSlot => {
+                const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+                return (
+                  <button
+                    key={timeSlot}
+                    onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
+                    disabled={isPastDay(day)}
+                    className={`w-full rounded text-[10px] p-1 transition-colors 
+                      ${getColorForStatus(availability[dateKey]?.[timeSlot])}
+                      ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
+                      {availability[dateKey]?.[timeSlot]?.eventType && (
+                        <span className="text-[10px] text-gray-600 truncate ml-1">
+                          ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    })}
   </div>
+) : currentView === 'week' ? (
+  <WeekView />
+) : (
+  <ListView />
 )}
-    </div>
+      </div>
+  
+      {/* Availability Modal */}
+      {showEventModal && (
+  <AvailabilityModal
+    isOpen={showEventModal}
+    onClose={() => {
+      setShowEventModal(false);
+      setIsBulkSelect(false);
+      setSelectedDay(null);
+      setDateRange([null, null]);
+    }}
+    onSave={(details) => {
+      handleSetAvailability(
+        details.eventType === 'available' ? 'available' : 'busy',
+        details.eventType,
+        details
+      );
+    }}
+    isBulkSelect={isBulkSelect}
+    dateRange={dateRange}
+    setDateRange={setDateRange}
+    getDayClassName={getDayClassName}
+    selectedDay={selectedDay}
+    currentDate={currentDate}
+    setSelectedDay={setSelectedDay}
+  />
+)}
+    </>
   );
 };
 

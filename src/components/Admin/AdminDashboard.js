@@ -12,7 +12,7 @@ import {
   Calendar
 } from 'lucide-react';
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ session }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,39 +67,58 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log('Starting to fetch users...');
+  
+      // First check if you're admin
+      const { data: adminCheck, error: adminError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', session?.user?.id)
+        .single();
+  
+      console.log('Admin check:', { adminCheck, adminError });
+  
+      if (!adminCheck?.is_admin) {
+        throw new Error('Not authorized as admin');
+      }
+  
+      // Fetch all users
       let query = supabase
         .from('profiles')
-        .select(`
-          *,
-          auth_user:id(
-            email,
-            last_sign_in_at,
-            created_at,
-            confirmed_at
-          )
-        `);
-
-      if (filter === 'active') {
-        query = query.not('auth_user.last_sign_in_at', 'is', null);
-      } else if (filter === 'inactive') {
-        query = query.eq('auth_user.last_sign_in_at', null);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      const usersWithStats = await Promise.all((data || []).map(async (user) => {
-        const stats = await fetchAvailabilityStats(user.id);
-        return {
-          ...user,
-          monthlyAvailability: stats.monthly,
-          yearlyAvailability: stats.yearly
-        };
-      }));
+        .select('*');
   
-      setUsers(usersWithStats);
+      const { data, error } = await query;
+      console.log('Raw users data:', data);
+      console.log('Query error if any:', error);
+  
+      if (error) {
+        console.error('Query error details:', error);
+        throw error;
+      }
+  
+      try {
+        const usersWithStats = await Promise.all((data || []).map(async (user) => {
+          console.log('Processing user:', user.id);
+          const stats = await fetchAvailabilityStats(user.id);
+          console.log('User stats:', stats);
+          return {
+            ...user,
+            monthlyAvailability: stats.monthly,
+            yearlyAvailability: stats.yearly
+          };
+        }));
+  
+        console.log('Final processed users:', usersWithStats);
+        setUsers(usersWithStats);
+      } catch (statsError) {
+        console.error('Stats calculation error:', statsError);
+        // Still set users even if stats fail
+        setUsers(data || []);
+      }
+  
     } catch (error) {
-      console.error('Error fetching users:', error);
-      alert('Error loading users');
+      console.error('Detailed fetch error:', error);
+      alert(`Error loading users: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -108,7 +127,10 @@ const AdminDashboard = () => {
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        const { error } = await supabase.auth.admin.deleteUser(userId);
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', userId);
         if (error) throw error;
         fetchUsers(); // Refresh list
       } catch (error) {
@@ -136,10 +158,10 @@ const AdminDashboard = () => {
   const handleExportUsers = () => {
     const csvData = users.map(user => ({
       username: user.username,
-      email: user.auth_user?.email,
+      email: user.email,
       hometown: user.hometown,
-      created_at: user.auth_user?.created_at,
-      last_login: user.auth_user?.last_sign_in_at
+      created_at: user.created_at,
+      last_login: user.last_sign_in_at
     }));
 
     const csvString = [
