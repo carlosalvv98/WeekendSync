@@ -3,10 +3,17 @@ import { Calendar as CalendarIcon, CalendarDays, Info, Copy, Trash2,} from 'luci
 import DatePicker from 'react-datepicker';
 import ViewSwitcher from './components/ViewSwitcher';
 import AvailabilityModal from './components/AvailabilityModal';
+import { supabase } from './supabaseClient';
+import { 
+  saveAvailability,
+  fetchUserAvailability,
+  deleteAvailability 
+} from './availabilityService';
 
 
 
-const Calendar = () => {
+const Calendar = ({ session }) => {
+  console.log('Current user ID:', session?.user?.id); 
   // =============== Core State ===============
   const [currentDate, setCurrentDate] = useState(new Date());
   const [availability, setAvailability] = useState({});
@@ -24,15 +31,15 @@ const Calendar = () => {
   const [dragStartDay, setDragStartDay] = useState(null);
   const [dragEndDay, setDragEndDay] = useState(null);
   const [selectedEventType, setSelectedEventType] = useState(null);
-const [showEventDetails, setShowEventDetails] = useState(false);
-const [eventDetails, setEventDetails] = useState({
-  travel_destination: '',
-  restaurant_name: '',
-  restaurant_location: '',
-  event_name: '',
-  event_location: '',
-  notes: ''
-});
+  const [showEventDetails, setShowEventDetails] = useState(false);
+  const [eventDetails, setEventDetails] = useState({
+    travel_destination: '',
+    restaurant_name: '',
+    restaurant_location: '',
+    event_name: '',
+    event_location: '',
+    notes: ''
+    });
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -65,8 +72,8 @@ const [eventDetails, setEventDetails] = useState({
   
     document.addEventListener('mouseup', handleMouseUp);
     return () => document.removeEventListener('mouseup', handleMouseUp);
-  }, []);
-
+  }, 
+  []);
   // =============== Constants ===============
   const today = new Date();
   const monthNames = ["January", "February", "March", "April", "May", "June",
@@ -390,10 +397,54 @@ const ListView = () => {
     }
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     const confirmClear = window.confirm('Are you sure you want to clear all availability?');
     if (confirmClear) {
-      setAvailability({});
+      try {
+        const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        
+        // Delete from Supabase
+        await deleteAvailability(
+          session.user.id,
+          startDate.toISOString().split('T')[0],
+          endDate.toISOString().split('T')[0]
+        );
+        
+        // Update local state
+        setAvailability({});
+      } catch (error) {
+        console.error('Error clearing availability:', error);
+        alert('Failed to clear availability. Please try again.');
+      }
+    }
+  };
+
+  const handleDeleteTimeSlot = async (dateStr, timeSlot = null) => {
+    try {
+      await deleteAvailability(session.user.id, dateStr);
+      
+      // Update local state
+      setAvailability(prev => {
+        const newAvailability = { ...prev };
+        if (timeSlot) {
+          // Delete specific time slot
+          if (newAvailability[dateStr]) {
+            delete newAvailability[dateStr][timeSlot];
+            // If no more time slots for this date, remove the date
+            if (Object.keys(newAvailability[dateStr]).length === 0) {
+              delete newAvailability[dateStr];
+            }
+          }
+        } else {
+          // Delete entire day
+          delete newAvailability[dateStr];
+        }
+        return newAvailability;
+      });
+    } catch (error) {
+      console.error('Error deleting availability:', error);
+      alert('Failed to delete availability. Please try again.');
     }
   };
 
@@ -413,67 +464,142 @@ const ListView = () => {
     setShowEventModal(true);
   };
 
-  const handleSetAvailability = (status, eventType = null) => {
-    if (isBulkSelect && startDate && endDate) {
-      let currentDate = new Date(startDate);
-      let newAvailability = { ...availability };
-      
-      while (currentDate <= endDate) {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const day = currentDate.getDate();
-        const dateKey = getDateKey(year, month, day);
+  const handleSetAvailability = async (status, eventType = null) => {
+    console.log('handleSetAvailability called with:', { status, eventType });
+    try {
+      console.log('Starting handleSetAvailability with:', {
+        status,
+        eventType,
+        session,
+        selectedDay,
+        isBulkSelect,
+        startDate,
+        endDate
+      });
+
+      if (isBulkSelect && startDate && endDate) {
+        console.log('Handling bulk selection');
+        let currentDate = new Date(startDate);
+        let newAvailability = { ...availability };
         
-        if (!isPastDay(currentDate)) {
-          timeSlots.forEach(timeSlot => {
-            if (!newAvailability[dateKey]) {
-              newAvailability[dateKey] = {};
+        while (currentDate <= endDate) {
+          const dateStr = currentDate.toISOString().split('T')[0];
+          console.log('Processing date:', dateStr);
+          
+          // Save each time slot
+          for (const timeSlot of timeSlots) {
+            console.log('Saving time slot:', {
+              userId: session?.user?.id,
+              dateStr,
+              timeSlot,
+              status,
+              eventType
+            });
+
+            await saveAvailability(
+              session.user.id,
+              dateStr,
+              timeSlot,
+              status,
+              { event_type: eventType }
+            );
+            
+            if (!newAvailability[dateStr]) {
+              newAvailability[dateStr] = {};
             }
-            newAvailability[dateKey][timeSlot] = {
+            newAvailability[dateStr][timeSlot] = {
               status,
               eventType
             };
-          });
+          }
+          
+          currentDate.setDate(currentDate.getDate() + 1);
         }
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      setAvailability(newAvailability);
-    } else if (selectedDay) {
-      const { day, timeSlot } = selectedDay;
-      const dateKey = getDateKey(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        day
-      );
-      
-      if (timeSlot === 'all') {
-        setAvailability(prev => ({
-          ...prev,
-          [dateKey]: timeSlots.reduce((acc, slot) => ({
-            ...acc,
-            [slot]: {
+        setAvailability(newAvailability);
+      } else if (selectedDay) {
+        console.log('Handling single day selection:', selectedDay);
+        const { day, timeSlot } = selectedDay;
+        const dateStr = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          day
+        ).toISOString().split('T')[0];
+
+        console.log('Generated dateStr:', dateStr);
+  
+        if (timeSlot === 'all') {
+          console.log('Handling full day');
+          // Handle full day
+          for (const slot of timeSlots) {
+            console.log('Saving slot:', {
+              userId: session?.user?.id,
+              dateStr,
+              slot,
               status,
               eventType
-            }
-          }), {})
-        }));
-      } else {
-        setAvailability(prev => ({
-          ...prev,
-          [dateKey]: {
-            ...prev[dateKey],
-            [timeSlot]: {
-              status,
-              eventType
+            });
+
+            try {
+              await saveAvailability(
+                session.user.id,
+                dateStr,
+                slot,
+                status,
+                { event_type: eventType }
+              );
+            } catch (slotError) {
+              console.error('Error saving slot:', slot, slotError);
+              throw slotError;
             }
           }
+        } else {
+          console.log('Handling single time slot:', {
+            userId: session?.user?.id,
+            dateStr,
+            timeSlot,
+            status,
+            eventType
+          });
+
+          // Handle single time slot
+          try {
+            await saveAvailability(
+              session.user.id,
+              dateStr,
+              timeSlot,
+              status,
+              { event_type: eventType }
+            );
+          } catch (slotError) {
+            console.error('Error saving single slot:', slotError);
+            throw slotError;
+          }
+        }
+  
+        // Update local state
+        setAvailability(prev => ({
+          ...prev,
+          [dateStr]: timeSlot === 'all' 
+            ? timeSlots.reduce((acc, slot) => ({
+                ...acc,
+                [slot]: { status, eventType }
+              }), {})
+            : {
+                ...prev[dateStr],
+                [timeSlot]: { status, eventType }
+              }
         }));
       }
+      
+      setShowEventModal(false);
+      setSelectedDay(null);
+      setIsBulkSelect(false);
+      setDateRange([null, null]);
+    } catch (error) {
+      console.error('Full error details:', error);
+      console.error('Error stack:', error.stack);
+      alert('Failed to save availability. Please try again.');
     }
-    setShowEventModal(false);
-    setSelectedDay(null);
-    setIsBulkSelect(false);
-    setDateRange([null, null]);
   };
 
   const handleCopy = (day) => {
@@ -532,6 +658,40 @@ const ListView = () => {
     document.addEventListener('mouseup', handleMouseUp);
     return () => document.removeEventListener('mouseup', handleMouseUp);
   }, [isDragging, dragStartDay, dragEndDay]);
+
+  useEffect(() => {
+    const loadAvailability = async () => {
+      if (!session?.user?.id) return;
+      
+      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      
+      try {
+        const data = await fetchUserAvailability(
+          session.user.id,
+          startDate.toISOString().split('T')[0],
+          endDate.toISOString().split('T')[0]
+        );
+        
+        // Convert the data to your existing availability format
+        const formattedData = data.reduce((acc, item) => {
+          const dateKey = item.date;
+          if (!acc[dateKey]) acc[dateKey] = {};
+          acc[dateKey][item.time_slot] = {
+            status: item.status,
+            eventType: item.event_type
+          };
+          return acc;
+        }, {});
+        
+        setAvailability(formattedData);
+      } catch (error) {
+        console.error('Error loading availability:', error);
+      }
+    };
+  
+    loadAvailability();
+  }, [currentDate, session?.user?.id]);
 
   // =============== Main Render ===============
   return (
@@ -628,7 +788,7 @@ const ListView = () => {
         </div>
   
         {/* View Container */}
-{currentView === 'month' ? (
+        {currentView === 'month' ? (
   <div className="grid grid-cols-7 gap-2">
     {/* Weekday headers */}
     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -679,62 +839,89 @@ const ListView = () => {
             }
           }}
         >
-          {/* Copy button */}
-          {!isPastDay(day) && !copyMode && dayData && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCopy(day);
-              }}
-              className="absolute top-1 right-1 p-1 rounded-full bg-white shadow-md 
-                opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
-            >
-              <Copy size={14} />
-            </button>
-          )}
+          {/* Copy and Delete buttons */}
+{!isPastDay(day) && !copyMode && dayData && (
+  <div className="absolute top-1.5 right-1.5 flex items-center space-x-1">
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleCopy(day);
+      }}
+      className="w-5 h-5 flex items-center justify-center rounded-full bg-white/90 shadow-sm 
+        opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+    >
+      <Copy size={10} />
+    </button>
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDeleteTimeSlot(dateKey);
+      }}
+      className="w-5 h-5 flex items-center justify-center rounded-full bg-white/90 shadow-sm 
+        opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+    >
+      <span className="text-xs text-gray-500">×</span>
+    </button>
+  </div>
+)}
 
-          {/* Day number */}
-          <div className={`p-1 font-medium ${isToday(day) ? 'text-blue-500' : ''} 
-            ${isPastDay(day) ? 'text-gray-400' : ''}`}>
-            {day}
-          </div>
-                    
-          {/* Time slots container */}
-          {fullDayEvent ? (
-            <div className="flex-1 p-1">
-              <div className="text-xs text-gray-600 truncate">
-                {dayData.morning?.status === 'available' 
-                  ? 'Available'
-                  : dayData.morning?.eventType && 
-                    eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
-              </div>
+{/* Day number */}
+<div className={`p-1 font-medium ${isToday(day) ? 'text-blue-500' : ''} 
+  ${isPastDay(day) ? 'text-gray-400' : ''}`}>
+  {day}
+</div>
+          
+{/* Time slots container */}
+{fullDayEvent ? (
+  <div className="flex-1 p-1 relative group">
+    <div className="text-xs text-gray-600 truncate">
+      {dayData.morning?.status === 'available' 
+        ? 'Available'
+        : dayData.morning?.eventType && 
+          eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
+    </div>
+  </div>
+) : (
+  <div className="flex-1 flex flex-col gap-1 p-1">
+    {timeSlots.map(timeSlot => {
+      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+      return (
+        <div key={timeSlot} className="relative group">
+          <button
+            onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
+            disabled={isPastDay(day)}
+            className={`w-full rounded text-[10px] p-1 transition-colors 
+              ${getColorForStatus(availability[dateKey]?.[timeSlot])}
+              ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <div className="flex justify-between items-center">
+              <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
+              {availability[dateKey]?.[timeSlot]?.eventType && (
+                <span className="text-[10px] text-gray-600 truncate ml-1">
+                  ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
+                </span>
+              )}
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col gap-1 p-1">
-              {timeSlots.map(timeSlot => {
-                const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-                return (
-                  <button
-                    key={timeSlot}
-                    onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
-                    disabled={isPastDay(day)}
-                    className={`w-full rounded text-[10px] p-1 transition-colors 
-                      ${getColorForStatus(availability[dateKey]?.[timeSlot])}
-                      ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
-                      {availability[dateKey]?.[timeSlot]?.eventType && (
-                        <span className="text-[10px] text-gray-600 truncate ml-1">
-                          ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          </button>
+          {availability[dateKey]?.[timeSlot] && !isPastDay(day) && (
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      handleDeleteTimeSlot(dateKey, timeSlot);
+    }}
+    className="absolute right-1 top-1/2 -translate-y-1/2
+      w-4 h-4 flex items-center justify-center
+      bg-white/90 rounded-full shadow-sm
+      opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+  >
+    <span className="text-[10px] text-gray-500 leading-none">×</span>
+  </button>
+)}
+        </div>
+      );
+    })}
+  </div>
+)}
         </div>
       );
     })}

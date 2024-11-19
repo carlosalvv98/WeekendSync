@@ -112,7 +112,7 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto mt-4 p-4">
-        {currentPage === 'calendar' && <Calendar />}
+      {currentPage === 'calendar' && <Calendar session={session} />}
         {currentPage === 'friends' && (
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Friends</h2>
