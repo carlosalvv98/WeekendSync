@@ -56,29 +56,34 @@ export const fetchUserAvailability = async (userId, startDate, endDate) => {
   }
 };
 
-export const deleteAvailability = async (userId, startDate, endDate = null) => {
+export const deleteAvailability = async (userId, date, timeSlot = null) => {
   try {
+    console.log('Delete params:', { userId, date, timeSlot });
+    
     let query = supabase
       .from('availability')
       .delete()
       .eq('user_id', userId);
 
-    if (startDate && endDate) {
-      // If date range provided, delete within range
-      query = query
-        .gte('date', startDate)
-        .lte('date', endDate);
-    } else if (startDate) {
-      // If only one date provided, delete for that specific date
-      query = query.eq('date', startDate);
+    if (date) {
+      query = query.eq('date', date);
+      
+      // If timeSlot is specified, only delete that specific slot
+      if (timeSlot) {
+        query = query.eq('time_slot', timeSlot);
+      }
     }
 
     const { error } = await query;
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase delete error:', error);
+      throw error;
+    }
 
     console.log('Successfully deleted availability');
+    return true;
   } catch (error) {
-    console.error('Error deleting availability:', error);
+    console.error('Error in deleteAvailability:', error);
     throw error;
   }
 };

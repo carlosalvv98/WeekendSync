@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar } from 'lucide-react';
+import { X, Calendar, Lock, LockOpen } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import './calendarStyles.css';
@@ -8,22 +8,25 @@ import './calendarStyles.css';
 const AvailabilityModal = ({ 
   isOpen, 
   onClose, 
-  onSave, 
+  onSave,
+  onClear,
   isBulkSelect, 
   dateRange, 
   setDateRange, 
   getDayClassName,
   selectedDay,
   currentDate,
-  setSelectedDay 
+  setSelectedDay, 
+  existingAvailability = null
 }) => {
-  const [selectedEventType, setSelectedEventType] = useState(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [eventDetails, setEventDetails] = useState({
-    location: '',
-    withWho: '',
-    notes: ''
-  });
+    const [selectedEventType, setSelectedEventType] = useState(existingAvailability?.eventType || null);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [eventDetails, setEventDetails] = useState({
+      location: existingAvailability?.location || '',
+      withWho: existingAvailability?.withWho || '',
+      notes: existingAvailability?.notes || ''
+    });
+    const [isPrivate, setIsPrivate] = useState(existingAvailability?.isPrivate || false); // Add this
 
   // Date formatting helper
   const formatDate = (date) => {
@@ -133,6 +136,32 @@ const AvailabilityModal = ({
   </div>
 )}
 
+{/* Privacy Toggle */}
+<div className="flex items-center gap-2 mb-4">
+  <div className="flex items-center gap-2">
+    <button
+      onClick={() => setIsPrivate(!isPrivate)}
+      className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
+    >
+      {isPrivate ? (
+        <Lock className="w-4 h-4" />
+      ) : (
+        <LockOpen className="w-4 h-4" />
+      )}
+      {isPrivate ? 'Private' : 'Public'}
+    </button>
+    <div className={`w-8 h-4 rounded-full transition-colors relative cursor-pointer ${isPrivate ? 'bg-blue-600' : 'bg-gray-300'}`}
+      onClick={() => setIsPrivate(!isPrivate)}
+    >
+      <div 
+        className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${
+          isPrivate ? 'translate-x-4' : ''
+        }`}
+      />
+    </div>
+  </div>
+</div>
+
         {/* Event Types Grid */}
 <div className="grid grid-cols-2 gap-1.5 mt-4">
   {eventTypes.map((eventType) => (
@@ -208,21 +237,36 @@ const AvailabilityModal = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="flex-1 p-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onSave({ eventType: selectedEventType, ...eventDetails })}
-            className="flex-1 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
-            disabled={!selectedEventType}
-          >
-            Save
-          </button>
-        </div>
+<div className="flex gap-3 mt-6">
+  <button
+    onClick={onClose}
+    className="flex-1 p-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium transition-colors"
+  >
+    Cancel
+  </button>
+  {existingAvailability && (
+    <button
+      onClick={() => {
+        onClear();
+        onClose();
+      }}
+      className="flex-1 p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-md text-sm font-medium transition-colors"
+    >
+      Clear
+    </button>
+  )}
+  <button
+    onClick={() => onSave({ 
+      eventType: selectedEventType, 
+      ...eventDetails,
+      isPrivate 
+    })}
+    className="flex-1 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+    disabled={!selectedEventType}
+  >
+    Save
+  </button>
+</div>
       </div>
     </div>
   );

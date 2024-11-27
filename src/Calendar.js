@@ -3,6 +3,7 @@ import { Calendar as CalendarIcon, CalendarDays, Info, Copy, Trash2,} from 'luci
 import DatePicker from 'react-datepicker';
 import ViewSwitcher from './components/ViewSwitcher';
 import AvailabilityModal from './components/AvailabilityModal';
+import PastEventModal from './components/PastEventModal';
 import { supabase } from './supabaseClient';
 import { 
   saveAvailability,
@@ -30,6 +31,8 @@ const Calendar = ({ session }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartDay, setDragStartDay] = useState(null);
   const [dragEndDay, setDragEndDay] = useState(null);
+  const [existingAvailabilityData, setExistingAvailabilityData] = useState(null);
+  const [showPastEventModal, setShowPastEventModal] = useState(false);
   const [selectedEventType, setSelectedEventType] = useState(null);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [eventDetails, setEventDetails] = useState({
@@ -390,10 +393,28 @@ const ListView = () => {
   const handleTimeSlotClick = (day, timeSlot, e) => {
     e?.stopPropagation();
     const clickDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+    
     if (!isPastDay(clickDate)) {
       setSelectedDay({ day, timeSlot });
       setIsBulkSelect(false);
+      
+      // Get existing availability if any
+      const existingData = availability[dateKey];
+      let existingAvailability = null;
+      
+      if (existingData && existingData[timeSlot]) {
+        existingAvailability = {
+          eventType: existingData[timeSlot].eventType,
+          location: existingData[timeSlot].location || '',
+          withWho: existingData[timeSlot].withWho || '',
+          notes: existingData[timeSlot].notes || '',
+          isPrivate: existingData[timeSlot].isPrivate || false
+        };
+      }
+      
       setShowEventModal(true);
+      setExistingAvailabilityData(existingAvailability);
     }
   };
 
@@ -422,7 +443,14 @@ const ListView = () => {
 
   const handleDeleteTimeSlot = async (dateStr, timeSlot = null) => {
     try {
-      await deleteAvailability(session.user.id, dateStr);
+      console.log('Deleting:', { dateStr, timeSlot });
+      
+      // Delete from Supabase
+      await deleteAvailability(
+        session.user.id,
+        dateStr,
+        timeSlot  // Pass timeSlot to deleteAvailability
+      );
       
       // Update local state
       setAvailability(prev => {
@@ -451,11 +479,34 @@ const ListView = () => {
   const handleDayClick = (day, e) => {
     e?.stopPropagation();
     const clickDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    if (!isPastDay(clickDate)) {
-      setSelectedDay({ day, timeSlot: 'all' });
-      setIsBulkSelect(false);
+    const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const isPast = isPastDay(clickDate);
+    
+    setSelectedDay({ day, timeSlot: 'all' });
+    setIsBulkSelect(false);
+    
+    // Get existing availability if any
+    const existingData = availability[dateKey];
+    let existingAvailability = null;
+    
+    if (existingData) {
+      // If it's a full day event, use morning data as reference
+      const timeSlotData = existingData.morning || Object.values(existingData)[0];
+      existingAvailability = {
+        eventType: timeSlotData.eventType,
+        location: timeSlotData.location || '',
+        withWho: timeSlotData.withWho || '',
+        notes: timeSlotData.notes || '',
+        isPrivate: timeSlotData.isPrivate || false
+      };
+    }
+  
+    if (isPast && existingData) {
+      setShowPastEventModal(true); // Add this state
+    } else if (!isPast) {
       setShowEventModal(true);
     }
+    setExistingAvailabilityData(existingAvailability);
   };
 
   const handleBulkSelect = () => {
@@ -840,7 +891,7 @@ const ListView = () => {
           }}
         >
           {/* Copy and Delete buttons */}
-{!isPastDay(day) && !copyMode && dayData && (
+          {!copyMode && dayData && (
   <div className="absolute top-1.5 right-1.5 flex items-center space-x-1">
     <button
       onClick={(e) => {
@@ -895,13 +946,14 @@ const ListView = () => {
               ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className="flex justify-between items-center">
-              <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
-              {availability[dateKey]?.[timeSlot]?.eventType && (
-                <span className="text-[10px] text-gray-600 truncate ml-1">
-                  ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
-                </span>
-              )}
-            </div>
+  <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
+  {availability[dateKey]?.[timeSlot]?.eventType && 
+   availability[dateKey]?.[timeSlot]?.status !== 'available' && (
+    <span className="text-[10px] text-gray-600 truncate ml-1">
+      ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
+    </span>
+  )}
+</div>
           </button>
           {availability[dateKey]?.[timeSlot] && !isPastDay(day) && (
   <button
@@ -950,6 +1002,10 @@ const ListView = () => {
         details
       );
     }}
+    onClear={() => {
+      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day);
+      handleDeleteTimeSlot(dateKey, selectedDay.timeSlot === 'all' ? null : selectedDay.timeSlot);
+    }}
     isBulkSelect={isBulkSelect}
     dateRange={dateRange}
     setDateRange={setDateRange}
@@ -957,6 +1013,24 @@ const ListView = () => {
     selectedDay={selectedDay}
     currentDate={currentDate}
     setSelectedDay={setSelectedDay}
+    existingAvailability={existingAvailabilityData} 
+  />
+)}
+{/* Past Event Modal */}
+{showPastEventModal && selectedDay && (
+  <PastEventModal
+    isOpen={showPastEventModal}
+    onClose={() => {
+      setShowPastEventModal(false);
+      setSelectedDay(null);
+    }}
+    onClear={() => {
+      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day);
+      handleDeleteTimeSlot(dateKey);
+      setShowPastEventModal(false);
+    }}
+    dayData={availability[getDateKey(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day)]}
+    date={new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day)}
   />
 )}
     </>
