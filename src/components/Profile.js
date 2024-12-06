@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, MapPin, Heart, Camera, Plane, Home, Zap, Calendar, Users, Coffee, Utensils, Trophy, Check, X, Settings, Lock, LogOut, Link } from 'lucide-react';
 import { debounce } from 'lodash';
-import { supabase } from '../supabaseClient';  // Adjust path if needed
+import { supabase } from '../supabaseClient';  
 
 const Profile = ({ session }) => {
     const [loading, setLoading] = useState(true);
