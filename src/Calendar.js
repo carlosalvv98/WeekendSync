@@ -85,16 +85,67 @@ const Calendar = ({ session }) => {
   
   const timeSlots = ['morning', 'afternoon', 'night'];
   const eventTypes = [
-    { id: 'traveling', label: 'Travelling' },
-    { id: 'lunch', label: 'Lunch' },
-    { id: 'dinner', label: 'Dinner' },
-    { id: 'wedding', label: 'Wedding' },
-    { id: 'event', label: 'Event' },
-    { id: 'family', label: 'Family Time' },
-    { id: 'work', label: 'Work' },
-    { id: 'party', label: 'Party' },
-    { id: 'other', label: 'Other' }
-  ];
+    { 
+      id: 'available', 
+      label: 'Available',
+      baseColor: 'bg-green-50',
+      selectedColor: 'bg-green-100 border-green-500'
+    },
+    { 
+      id: 'traveling', 
+      label: 'Traveling',
+      baseColor: 'bg-blue-50',
+      selectedColor: 'bg-blue-100 border-blue-500'
+    },
+    { 
+      id: 'lunch', 
+      label: 'Lunch',
+      baseColor: 'bg-orange-50',
+      selectedColor: 'bg-orange-100 border-orange-500'
+    },
+    { 
+      id: 'dinner', 
+      label: 'Dinner',
+      baseColor: 'bg-yellow-50',
+      selectedColor: 'bg-yellow-100 border-yellow-500'
+    },
+    { 
+      id: 'event', 
+      label: 'Event',
+      baseColor: 'bg-indigo-50',
+      selectedColor: 'bg-indigo-100 border-indigo-500'
+    },
+    { 
+      id: 'wedding', 
+      label: 'Wedding',
+      baseColor: 'bg-pink-50',
+      selectedColor: 'bg-pink-100 border-pink-500'
+    },
+    { 
+      id: 'party', 
+      label: 'Party',
+      baseColor: 'bg-purple-50',
+      selectedColor: 'bg-purple-100 border-purple-500'
+    },
+    { 
+      id: 'family', 
+      label: 'Family Time',
+      baseColor: 'bg-red-50',
+      selectedColor: 'bg-red-100 border-red-500'
+    },
+    { 
+      id: 'work', 
+      label: 'Work',
+      baseColor: 'bg-gray-50',
+      selectedColor: 'bg-gray-100 border-gray-500'
+    },
+    { 
+      id: 'other', 
+      label: 'Other',
+      baseColor: 'bg-gray-50',
+      selectedColor: 'bg-gray-100 border-gray-500'
+    }
+];
 
   // =============== Helper Functions ===============
   // Check if a day is today
@@ -144,7 +195,12 @@ const Calendar = ({ session }) => {
     );
   };
 
-  const getDateKey = (year, month, day) => `${year}-${month + 1}-${day}`;
+  const getDateKey = (year, month, day) => {
+    // Add 1 to month since it's 0-based, and ensure proper formatting with leading zeros
+    const formattedMonth = (month + 1).toString().padStart(2, '0');
+    const formattedDay = day.toString().padStart(2, '0');
+    return `${year}-${formattedMonth}-${formattedDay}`;
+};
 
   const getAvailability = (year, month, day) => {
     const key = getDateKey(year, month, day);
@@ -154,12 +210,17 @@ const Calendar = ({ session }) => {
   // Get color class based on availability status
   const getColorForStatus = (dayData, isFullDay = false) => {
     if (!dayData) return 'bg-white hover:bg-gray-50';
-    switch (dayData.status) {
-      case 'available': return isFullDay ? 'bg-green-100' : 'bg-green-100 hover:bg-green-200';
-      case 'busy': return isFullDay ? 'bg-red-100' : 'bg-red-100 hover:bg-red-200';
-      default: return 'bg-white hover:bg-gray-50';
+    
+    if (dayData.status === 'available') {
+        return isFullDay ? 'bg-green-100 opacity-75' : 'bg-green-100 hover:bg-green-200 opacity-75';
+    } else if (dayData.status === 'busy') {
+        const eventType = eventTypes.find(e => e.id === dayData.eventType);
+        if (!eventType) return 'bg-white hover:bg-gray-50';
+        return isFullDay ? eventType.baseColor : `${eventType.baseColor} hover:${eventType.selectedColor}`;
     }
-  };
+    
+    return 'bg-white hover:bg-gray-50';
+};
 
 
   const WeekView = () => {
@@ -493,21 +554,39 @@ const ListView = () => {
       // If it's a full day event, use morning data as reference
       const timeSlotData = existingData.morning || Object.values(existingData)[0];
       existingAvailability = {
+        // Keep existing fields
         eventType: timeSlotData.eventType,
-        location: timeSlotData.location || '',
-        withWho: timeSlotData.withWho || '',
+        isPrivate: timeSlotData.isPrivate || false,
+        
+        // Add new expanded fields
+        travel_destination: timeSlotData.travel_destination || '',
+        restaurant_name: timeSlotData.restaurant_name || '',
+        restaurant_location: timeSlotData.restaurant_location || '',
+        event_name: timeSlotData.event_name || '',
+        event_location: timeSlotData.event_location || '',
+        wedding_location: timeSlotData.wedding_location || '',
+        partners: timeSlotData.partners || [],
+        event_url: timeSlotData.event_url || '',
+        private_notes: timeSlotData.private_notes || '',
         notes: timeSlotData.notes || '',
-        isPrivate: timeSlotData.isPrivate || false
+        privacy_level: timeSlotData.privacy_level || 'public',
+        
+        // Optional metadata
+        is_linked_event: timeSlotData.is_linked_event || false,
+        linked_event_id: timeSlotData.linked_event_id || null,
+        attendee_count: timeSlotData.attendee_count || 0
       };
     }
   
+    // Keep existing modal logic
     if (isPast && existingData) {
-      setShowPastEventModal(true); // Add this state
+      setShowPastEventModal(true);
     } else if (!isPast) {
       setShowEventModal(true);
     }
+    
     setExistingAvailabilityData(existingAvailability);
-  };
+};
 
   const handleBulkSelect = () => {
     setDateRange([null, null]);
@@ -515,19 +594,9 @@ const ListView = () => {
     setShowEventModal(true);
   };
 
-  const handleSetAvailability = async (status, eventType = null) => {
-    console.log('handleSetAvailability called with:', { status, eventType });
+  const handleSetAvailability = async (details) => {
+    console.log('Saving availability:', { details, selectedDay, currentDate });
     try {
-      console.log('Starting handleSetAvailability with:', {
-        status,
-        eventType,
-        session,
-        selectedDay,
-        isBulkSelect,
-        startDate,
-        endDate
-      });
-
       if (isBulkSelect && startDate && endDate) {
         console.log('Handling bulk selection');
         let currentDate = new Date(startDate);
@@ -543,24 +612,37 @@ const ListView = () => {
               userId: session?.user?.id,
               dateStr,
               timeSlot,
-              status,
-              eventType
+              details
             });
 
             await saveAvailability(
               session.user.id,
               dateStr,
               timeSlot,
-              status,
-              { event_type: eventType }
+              details.eventType === 'available' ? 'available' : 'busy',
+              {
+                event_type: details.eventType,
+                travel_destination: details.travel_destination || null,
+                restaurant_name: details.restaurant_name || null,
+                restaurant_location: details.restaurant_location || null,
+                event_name: details.event_name || null,
+                event_location: details.event_location || null,
+                wedding_location: details.wedding_location || null,
+                partners: details.partners || [],
+                event_url: details.event_url || null,
+                private_notes: details.private_notes || null,
+                notes: details.notes || null,
+                privacy_level: details.privacy_level || 'public'
+              }
             );
             
             if (!newAvailability[dateStr]) {
               newAvailability[dateStr] = {};
             }
             newAvailability[dateStr][timeSlot] = {
-              status,
-              eventType
+              status: details.eventType === 'available' ? 'available' : 'busy',
+              eventType: details.eventType,
+              ...details
             };
           }
           
@@ -586,8 +668,7 @@ const ListView = () => {
               userId: session?.user?.id,
               dateStr,
               slot,
-              status,
-              eventType
+              details
             });
 
             try {
@@ -595,8 +676,21 @@ const ListView = () => {
                 session.user.id,
                 dateStr,
                 slot,
-                status,
-                { event_type: eventType }
+                details.eventType === 'available' ? 'available' : 'busy',
+                {
+                  event_type: details.eventType,
+                  travel_destination: details.travel_destination || null,
+                  restaurant_name: details.restaurant_name || null,
+                  restaurant_location: details.restaurant_location || null,
+                  event_name: details.event_name || null,
+                  event_location: details.event_location || null,
+                  wedding_location: details.wedding_location || null,
+                  partners: details.partners || [],
+                  event_url: details.event_url || null,
+                  private_notes: details.private_notes || null,
+                  notes: details.notes || null,
+                  privacy_level: details.privacy_level || 'public'
+                }
               );
             } catch (slotError) {
               console.error('Error saving slot:', slot, slotError);
@@ -608,18 +702,29 @@ const ListView = () => {
             userId: session?.user?.id,
             dateStr,
             timeSlot,
-            status,
-            eventType
+            details
           });
 
-          // Handle single time slot
           try {
             await saveAvailability(
               session.user.id,
               dateStr,
               timeSlot,
-              status,
-              { event_type: eventType }
+              details.eventType === 'available' ? 'available' : 'busy',
+              {
+                event_type: details.eventType,
+                travel_destination: details.travel_destination || null,
+                restaurant_name: details.restaurant_name || null,
+                restaurant_location: details.restaurant_location || null,
+                event_name: details.event_name || null,
+                event_location: details.event_location || null,
+                wedding_location: details.wedding_location || null,
+                partners: details.partners || [],
+                event_url: details.event_url || null,
+                private_notes: details.private_notes || null,
+                notes: details.notes || null,
+                privacy_level: details.privacy_level || 'public'
+              }
             );
           } catch (slotError) {
             console.error('Error saving single slot:', slotError);
@@ -633,11 +738,19 @@ const ListView = () => {
           [dateStr]: timeSlot === 'all' 
             ? timeSlots.reduce((acc, slot) => ({
                 ...acc,
-                [slot]: { status, eventType }
+                [slot]: { 
+                  status: details.eventType === 'available' ? 'available' : 'busy',
+                  eventType: details.eventType,
+                  ...details 
+                }
               }), {})
             : {
                 ...prev[dateStr],
-                [timeSlot]: { status, eventType }
+                [timeSlot]: { 
+                  status: details.eventType === 'available' ? 'available' : 'busy',
+                  eventType: details.eventType,
+                  ...details 
+                }
               }
         }));
       }
@@ -712,37 +825,51 @@ const ListView = () => {
 
   useEffect(() => {
     const loadAvailability = async () => {
-      if (!session?.user?.id) return;
-      
-      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-      
-      try {
-        const data = await fetchUserAvailability(
-          session.user.id,
-          startDate.toISOString().split('T')[0],
-          endDate.toISOString().split('T')[0]
-        );
+        if (!session?.user?.id) return;
         
-        // Convert the data to your existing availability format
-        const formattedData = data.reduce((acc, item) => {
-          const dateKey = item.date;
-          if (!acc[dateKey]) acc[dateKey] = {};
-          acc[dateKey][item.time_slot] = {
-            status: item.status,
-            eventType: item.event_type
-          };
-          return acc;
-        }, {});
+        const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         
-        setAvailability(formattedData);
-      } catch (error) {
-        console.error('Error loading availability:', error);
-      }
+        try {
+            const data = await fetchUserAvailability(
+                session.user.id,
+                startDate.toISOString().split('T')[0],
+                endDate.toISOString().split('T')[0]
+            );
+            
+            console.log('Fetched data:', data); // Debug log
+            
+            // Convert the data to your existing availability format
+            const formattedData = data.reduce((acc, item) => {
+                const dateKey = item.date; // This should match the format from getDateKey
+                if (!acc[dateKey]) acc[dateKey] = {};
+                acc[dateKey][item.time_slot] = {
+                    status: item.status,
+                    eventType: item.event_type,
+                    travel_destination: item.travel_destination,
+                    restaurant_name: item.restaurant_name,
+                    restaurant_location: item.restaurant_location,
+                    event_name: item.event_name,
+                    event_location: item.event_location,
+                    wedding_location: item.wedding_location,
+                    partners: item.partners || [],
+                    event_url: item.event_url,
+                    private_notes: item.private_notes,
+                    notes: item.notes,
+                    privacy_level: item.privacy_level || 'public'
+                };
+                return acc;
+            }, {});
+            
+            console.log('Formatted data:', formattedData); // Debug log
+            setAvailability(formattedData);
+        } catch (error) {
+            console.error('Error loading availability:', error);
+        }
     };
-  
+
     loadAvailability();
-  }, [currentDate, session?.user?.id]);
+}, [currentDate, session?.user?.id]);
 
   // =============== Main Render ===============
   return (
@@ -866,8 +993,8 @@ const ListView = () => {
           key={day} 
           className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
             ${isToday(day) ? 'border-blue-500 border-2' : ''}
-            ${isPastDay(day) ? 'bg-gray-50' : ''}
-            ${fullDayEvent ? getColorForStatus(dayData?.morning, true) : ''}
+            ${isPastDay(day) && !dayData ? 'bg-gray-50' : ''}  // Gray background only for past dates without availability
+            ${fullDayEvent ? `${getColorForStatus(dayData?.morning, true)} ${isPastDay(day) ? 'opacity-75' : ''}` : ''}
             ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
             ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
             ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
@@ -995,13 +1122,7 @@ const ListView = () => {
       setSelectedDay(null);
       setDateRange([null, null]);
     }}
-    onSave={(details) => {
-      handleSetAvailability(
-        details.eventType === 'available' ? 'available' : 'busy',
-        details.eventType,
-        details
-      );
-    }}
+    onSave={(details) => handleSetAvailability(details)}  // Changed this line
     onClear={() => {
       const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day);
       handleDeleteTimeSlot(dateKey, selectedDay.timeSlot === 'all' ? null : selectedDay.timeSlot);
