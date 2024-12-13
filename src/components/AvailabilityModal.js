@@ -422,45 +422,40 @@ const AvailabilityModal = ({
         </div>
 
         <div className="px-6 py-4 space-y-6">
-  {!isEditMode ? (
+        {!isEditMode ? (
     // View Mode
     <>
-      <div className={`p-4 rounded-lg ${
-        selectedEventType === 'available' 
-          ? 'bg-green-50 border border-green-200' 
-          : 'bg-blue-50 border border-blue-200'
-      }`}>
-        <p className="font-medium text-gray-800">
-          {eventTypes.find(e => e.id === selectedEventType)?.label} 
-          {selectedDay?.timeSlot === 'all' 
-            ? ' All Day'
-            : ` @ ${selectedDay?.timeSlot === 'morning' ? 'Morning' : 
-                selectedDay?.timeSlot === 'afternoon' ? 'Afternoon' : 
-                selectedDay?.timeSlot === 'night' ? 'Night' : ''}`
-          }
-        </p>
-
-        <div className="mt-3 space-y-2">
-          {eventDetails.travel_destination && (
-            <div className="flex items-center text-gray-600">
-              <MapPin className="w-4 h-4 mr-2" />
-              <span>{eventDetails.travel_destination}</span>
-            </div>
-          )}
-          {eventDetails.partners?.length > 0 && (
+      {Object.entries(existingAvailability || {}).map(([slot, data]) => (
+        <div key={slot} className={`p-4 rounded-lg mb-3 ${
+          data.status === 'available'
+            ? 'bg-green-50 border border-green-200'
+            : 'bg-red-50 border border-red-200'
+        }`}>
+          <p className="font-medium text-gray-800">
+            {data.status === 'available' ? 'Available' : eventTypes.find(e => e.id === data.eventType)?.label}
+            {` @ ${slot.charAt(0).toUpperCase() + slot.slice(1)}`}
+          </p>
+          
+          <div className="mt-3 space-y-2">
+            {data.travel_destination && (
+              <div className="flex items-center text-gray-600">
+                <MapPin className="w-4 h-4 mr-2" />
+                <span>{data.travel_destination || 'No location specified'}</span>
+              </div>
+            )}
             <div className="flex items-center text-gray-600">
               <Users className="w-4 h-4 mr-2" />
-              <span>{eventDetails.partners.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}</span>
+              <span>{data.partners?.length > 0 
+                ? data.partners.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')
+                : 'No attendees specified'}</span>
             </div>
-          )}
-          {eventDetails.notes && (
             <div className="flex items-start text-gray-600">
               <ClipboardList className="w-4 h-4 mr-2 mt-1" />
-              <span className="flex-1">{eventDetails.notes}</span>
+              <span className="flex-1">{data.notes || 'No additional details'}</span>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      ))}
 
       <div className="flex justify-center">
         <button
@@ -468,90 +463,90 @@ const AvailabilityModal = ({
           className="px-8 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
           Edit Details
-       </button>
-     </div>
+        </button>
+      </div>
     </>
   ) : (
     // Edit mode
-  <div className="px-6 py-4 space-y-6">
-          {/* Privacy Toggle */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPrivacyLevel(prev => prev === 'private' ? 'public' : 'private')}
-              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
-            >
-              {privacyLevel === 'private' ? (
-                <Lock className="w-4 h-4" />
-              ) : (
-                <Globe className="w-4 h-4" />
-              )}
-              {privacyLevel === 'private' ? 'Private' : 'Public'}
-            </button>
-            <div
-              className={`w-8 h-4 rounded-full transition-colors relative cursor-pointer ${
-                privacyLevel === 'private' ? 'bg-blue-600' : 'bg-gray-300'
-              }`}
-              onClick={() => setPrivacyLevel(prev => prev === 'private' ? 'public' : 'private')}
-            >
-              <div 
-                className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${
-                  privacyLevel === 'private' ? 'translate-x-4' : ''
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Date Picker */}
-          {(showDatePicker || isBulkSelect) && (
-            <DatePicker
-              selected={isBulkSelect ? dateRange[0] : new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay?.day)}
-              startDate={isBulkSelect ? dateRange[0] : null}
-              endDate={isBulkSelect ? dateRange[1] : null}
-              onChange={(date) => {
-                if (isBulkSelect) {
-                  setDateRange(Array.isArray(date) ? date : [date, null]);
-                } else if (date) {
-                  setSelectedDay(prev => ({
-                    ...prev,
-                    day: new Date(date).getDate()
-                  }));
-                  setShowDatePicker(false);
-                }
-              }}
-              selectsRange={isBulkSelect}
-              minDate={new Date()}
-              inline
-              dayClassName={getDayClassName}
-              calendarClassName="!border-none !shadow-lg !font-normal"
-            />
+    <div className="px-6 py-4 space-y-6">
+      {/* Privacy Toggle */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setPrivacyLevel(prev => prev === 'private' ? 'public' : 'private')}
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
+        >
+          {privacyLevel === 'private' ? (
+            <Lock className="w-4 h-4" />
+          ) : (
+            <Globe className="w-4 h-4" />
           )}
-
-          {/* Event Types */}
-          <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Status</h3>
-          <div className="grid grid-cols-2 gap-1.5">
-              {eventTypes.map((eventType) => (
-                <button
-                  key={eventType.id}
-                  onClick={() => setSelectedEventType(eventType.id)}
-                  className={`
-                    py-1.5 px-2 rounded-md text-sm font-medium transition-all text-left
-                    border-2
-                    ${selectedEventType === eventType.id 
-                      ? eventType.selectedColor
-                      : `${eventType.baseColor} border-transparent hover:border-gray-200`}
-                  `}
-                >
-                  {eventType.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Dynamic Fields */}
-          {getEventFields()}
+          {privacyLevel === 'private' ? 'Private' : 'Public'}
+        </button>
+        <div
+          className={`w-8 h-4 rounded-full transition-colors relative cursor-pointer ${
+            privacyLevel === 'private' ? 'bg-blue-600' : 'bg-gray-300'
+          }`}
+          onClick={() => setPrivacyLevel(prev => prev === 'private' ? 'public' : 'private')}
+        >
+          <div 
+            className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${
+              privacyLevel === 'private' ? 'translate-x-4' : ''
+            }`}
+          />
         </div>
-        )}
+      </div>
+
+      {/* Date Picker */}
+      {(showDatePicker || isBulkSelect) && (
+        <DatePicker
+          selected={isBulkSelect ? dateRange[0] : new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay?.day)}
+          startDate={isBulkSelect ? dateRange[0] : null}
+          endDate={isBulkSelect ? dateRange[1] : null}
+          onChange={(date) => {
+            if (isBulkSelect) {
+              setDateRange(Array.isArray(date) ? date : [date, null]);
+            } else if (date) {
+              setSelectedDay(prev => ({
+                ...prev,
+                day: new Date(date).getDate()
+              }));
+              setShowDatePicker(false);
+            }
+          }}
+          selectsRange={isBulkSelect}
+          minDate={new Date()}
+          inline
+          dayClassName={getDayClassName}
+          calendarClassName="!border-none !shadow-lg !font-normal"
+        />
+      )}
+
+      {/* Event Types */}
+      <div>
+        <h3 className="text-sm font-medium text-gray-700 mb-2">Status</h3>
+        <div className="grid grid-cols-2 gap-1.5">
+          {eventTypes.map((eventType) => (
+            <button
+              key={eventType.id}
+              onClick={() => setSelectedEventType(eventType.id)}
+              className={`
+                py-1.5 px-2 rounded-md text-sm font-medium transition-all text-left
+                border-2
+                ${selectedEventType === eventType.id 
+                  ? eventType.selectedColor
+                  : `${eventType.baseColor} border-transparent hover:border-gray-200`}
+              `}
+            >
+              {eventType.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Dynamic Fields */}
+      {getEventFields()}
+    </div>
+  )}
       </div>
 
         {/* Footer */}

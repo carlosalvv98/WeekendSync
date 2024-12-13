@@ -548,37 +548,9 @@ const ListView = () => {
     
     // Get existing availability if any
     const existingData = availability[dateKey];
-    let existingAvailability = null;
-    
-    if (existingData) {
-      // If it's a full day event, use morning data as reference
-      const timeSlotData = existingData.morning || Object.values(existingData)[0];
-      existingAvailability = {
-        // Keep existing fields
-        eventType: timeSlotData.eventType,
-        isPrivate: timeSlotData.isPrivate || false,
-        
-        // Add new expanded fields
-        travel_destination: timeSlotData.travel_destination || '',
-        restaurant_name: timeSlotData.restaurant_name || '',
-        restaurant_location: timeSlotData.restaurant_location || '',
-        event_name: timeSlotData.event_name || '',
-        event_location: timeSlotData.event_location || '',
-        wedding_location: timeSlotData.wedding_location || '',
-        partners: timeSlotData.partners || [],
-        event_url: timeSlotData.event_url || '',
-        private_notes: timeSlotData.private_notes || '',
-        notes: timeSlotData.notes || '',
-        privacy_level: timeSlotData.privacy_level || 'public',
-        
-        // Optional metadata
-        is_linked_event: timeSlotData.is_linked_event || false,
-        linked_event_id: timeSlotData.linked_event_id || null,
-        attendee_count: timeSlotData.attendee_count || 0
-      };
-    }
+    let existingAvailability = existingData; 
   
-    // Keep existing modal logic
+    // modal logic
     if (isPast && existingData) {
       setShowPastEventModal(true);
     } else if (!isPast) {
