@@ -10,6 +10,8 @@ import {
   fetchUserAvailability,
   deleteAvailability 
 } from './availabilityService';
+import ListView from './components/ListView';
+
 
 
 
@@ -356,76 +358,6 @@ const Calendar = ({ session }) => {
       </div>
     );
   };
-
-// Add this after WeekView but before the main return statement
-const ListView = () => {
-  const daysInMonth = new Date(
-    currentDate.getFullYear(),
-    currentDate.getMonth() + 1,
-    0
-  ).getDate();
-  
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1).sort((a, b) => a - b);
-
-  return (
-    <div className="space-y-2">
-      {days.map(day => {
-        const dayData = availability[day];
-        const fullDayEvent = isFullDayEvent(dayData);
-        const hasAnyAvailability = dayData && Object.values(dayData).some(slot => slot?.status);
-
-        return (
-          <div 
-            key={day}
-            className="p-4 border rounded-lg hover:border-blue-200 transition-colors"
-          >
-            <div className="flex items-center justify-between">
-              <div className={`font-medium ${isToday(day) ? 'text-blue-500' : ''}`}>
-                {monthNames[currentDate.getMonth()]} {day}
-              </div>
-              {fullDayEvent && (
-                <div className={`text-sm px-2 py-1 rounded ${
-                  dayData.morning?.status === 'available' 
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {dayData.morning?.status === 'available' 
-                    ? 'Available'
-                    : eventTypes.find(e => e.id === dayData.morning?.eventType)?.label}
-                </div>
-              )}
-            </div>
-            
-            {!fullDayEvent && (
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                {timeSlots.map(timeSlot => {
-                  const slotData = dayData?.[timeSlot];
-                  return (
-                    <div 
-                      key={timeSlot}
-                      className={`text-sm px-2 py-1 rounded ${
-                        !slotData ? 'bg-gray-50 text-gray-500' :
-                        slotData.status === 'available' 
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      <span className="font-medium">{timeSlot}: </span>
-                      {!slotData ? 'No Status' :
-                        slotData.status === 'available' 
-                          ? 'Available'
-                          : eventTypes.find(e => e.id === slotData.eventType)?.label}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
 
   // Get class name for date picker days
   const getDayClassName = (date) => {
@@ -844,21 +776,24 @@ const ListView = () => {
 }, [currentDate, session?.user?.id]);
 
   // =============== Main Render ===============
-  return (
-    <>
-      <div className="bg-white rounded-lg shadow p-6">
-        {/* Calendar Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold">
-              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </h2>
-            <ViewSwitcher 
-              currentView={currentView}
-              onViewChange={setCurrentView}
-            />
-          </div>
-  
+return (
+  <>
+    <div className="bg-white rounded-lg shadow p-6">
+      {/* Calendar Header */}
+<div className="flex justify-between items-center mb-6">
+  <div className="space-y-2">
+    {currentView !== 'list' && (
+      <h2 className="text-2xl font-bold">
+        {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+      </h2>
+    )}
+    <ViewSwitcher 
+      currentView={currentView}
+      onViewChange={setCurrentView}
+    />
+  </div>
+
+        {currentView !== 'list' && (
           <div className="flex items-center gap-2 relative">
             <div className="relative">
               <button 
@@ -881,41 +816,9 @@ const ListView = () => {
                 </div>
               )}
             </div>
-  
-            <button 
-              onClick={handleClearAll}
-              className="p-2 px-4 rounded-lg bg-red-100 hover:bg-red-200 flex items-center gap-2"
-            >
-              <Trash2 size={16} />
-              <span>Clear All</span>
-            </button>
-  
+
             <div className="h-6 w-px bg-gray-200"></div>
-  
-            {copyMode && (
-              <div className="absolute top-full right-0 mt-2 flex items-center gap-2 bg-blue-50 p-2 rounded-lg shadow z-10">
-                <span className="text-sm text-gray-600">Select days to paste availability</span>
-                <button 
-                  onClick={handlePaste}
-                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-                >
-                  Paste
-                </button>
-                <button 
-                  onClick={() => {
-                    setCopyMode(false);
-                    setSelectedDays([]);
-                    setCopySource(null);
-                  }}
-                  className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-  
-            <div className="h-6 w-px bg-gray-200"></div>
-            
+
             <button 
               onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
               className="p-2 rounded-lg hover:bg-gray-100"
@@ -935,152 +838,157 @@ const ListView = () => {
               →
             </button>
           </div>
-        </div>
+        )}
+      </div>
   
         {/* View Container */}
-        {currentView === 'month' ? (
-  <div className="grid grid-cols-7 gap-2">
-    {/* Weekday headers */}
-    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-      <div key={day} className="text-center font-medium text-gray-500">
-        {day}
+{currentView === 'list' ? (
+  <ListView availability={availability} eventTypes={eventTypes} />
+) : (
+  <>
+    {currentView === 'month' ? (
+      <div className="grid grid-cols-7 gap-2">
+        {/* Weekday headers */}
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          <div key={day} className="text-center font-medium text-gray-500">
+            {day}
+          </div>
+        ))}
+        
+        {/* Empty cells for days before start of month */}
+        {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay() }, (_, i) => (
+          <div key={`empty-${i}`} className="h-32"></div>
+        ))}
+
+        {/* Calendar days */}
+        {days.map(day => {
+          const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+          const dayData = availability[dateKey];
+          const fullDayEvent = isFullDayEvent(dayData);
+          const isSelected = selectedDays.includes(day);
+          const isCopySource = copySource === day;
+
+          return (
+            <div 
+              key={day} 
+              className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
+                ${isToday(day) ? 'border-blue-500 border-2' : ''}
+                ${isPastDay(day) && !dayData ? 'bg-gray-50' : ''}
+                ${fullDayEvent ? `${getColorForStatus(dayData?.morning, true)} ${isPastDay(day) ? 'opacity-75' : ''}` : ''}
+                ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
+                ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
+                ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
+              onClick={(e) => {
+                if (copyMode) {
+                  handleDaySelection(day);
+                } else {
+                  handleDayClick(day, e);
+                }
+              }}
+              onMouseDown={() => {
+                if (copyMode) {
+                  setIsDragging(true);
+                  setDragStartDay(day);
+                }
+              }}
+              onMouseEnter={() => {
+                if (isDragging && copyMode) {
+                  handleDaySelection(day);
+                }
+              }}
+            >
+              {/* Copy and Delete buttons */}
+              {!copyMode && dayData && (
+                <div className="absolute top-1.5 right-1.5 flex items-center space-x-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopy(day);
+                    }}
+                    className="w-5 h-5 flex items-center justify-center rounded-full bg-white/90 shadow-sm 
+                      opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+                  >
+                    <Copy size={10} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTimeSlot(dateKey);
+                    }}
+                    className="w-5 h-5 flex items-center justify-center rounded-full bg-white/90 shadow-sm 
+                      opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+                  >
+                    <span className="text-xs text-gray-500">×</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Day number */}
+              <div className={`p-1 font-medium ${isToday(day) ? 'text-blue-500' : ''} 
+                ${isPastDay(day) ? 'text-gray-400' : ''}`}>
+                {day}
+              </div>
+                    
+              {/* Time slots container */}
+              {fullDayEvent ? (
+                <div className="flex-1 p-1 relative group">
+                  <div className="text-xs text-gray-600 truncate">
+                    {dayData.morning?.status === 'available' 
+                      ? 'Available'
+                      : dayData.morning?.eventType && 
+                        eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col gap-1 p-1">
+                  {timeSlots.map(timeSlot => {
+                    const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+                    return (
+                      <div key={timeSlot} className="relative group">
+                        <button
+                          onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
+                          disabled={isPastDay(day)}
+                          className={`w-full rounded text-[10px] p-1 transition-colors 
+                            ${getColorForStatus(availability[dateKey]?.[timeSlot])}
+                            ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
+                            {availability[dateKey]?.[timeSlot]?.eventType && 
+                             availability[dateKey]?.[timeSlot]?.status !== 'available' && (
+                              <span className="text-[10px] text-gray-600 truncate ml-1">
+                                ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        {availability[dateKey]?.[timeSlot] && !isPastDay(day) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTimeSlot(dateKey, timeSlot);
+                            }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2
+                              w-4 h-4 flex items-center justify-center
+                              bg-white/90 rounded-full shadow-sm
+                              opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+                          >
+                            <span className="text-[10px] text-gray-500 leading-none">×</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
-    ))}
-    
-    {/* Empty cells for days before start of month */}
-    {Array.from({ length: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay() }, (_, i) => (
-      <div key={`empty-${i}`} className="h-32"></div>
-    ))}
-
-    {/* Calendar days */}
-    {days.map(day => {
-      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-      const dayData = availability[dateKey];
-      const fullDayEvent = isFullDayEvent(dayData);
-      const isSelected = selectedDays.includes(day);
-      const isCopySource = copySource === day;
-
-      return (
-        <div 
-          key={day} 
-          className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
-            ${isToday(day) ? 'border-blue-500 border-2' : ''}
-            ${isPastDay(day) && !dayData ? 'bg-gray-50' : ''}  // Gray background only for past dates without availability
-            ${fullDayEvent ? `${getColorForStatus(dayData?.morning, true)} ${isPastDay(day) ? 'opacity-75' : ''}` : ''}
-            ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
-            ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
-            ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
-          onClick={(e) => {
-            if (copyMode) {
-              handleDaySelection(day);
-            } else {
-              handleDayClick(day, e);
-            }
-          }}
-          onMouseDown={() => {
-            if (copyMode) {
-              setIsDragging(true);
-              setDragStartDay(day);
-            }
-          }}
-          onMouseEnter={() => {
-            if (isDragging && copyMode) {
-              handleDaySelection(day);
-            }
-          }}
-        >
-          {/* Copy and Delete buttons */}
-          {!copyMode && dayData && (
-  <div className="absolute top-1.5 right-1.5 flex items-center space-x-1">
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        handleCopy(day);
-      }}
-      className="w-5 h-5 flex items-center justify-center rounded-full bg-white/90 shadow-sm 
-        opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
-    >
-      <Copy size={10} />
-    </button>
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        handleDeleteTimeSlot(dateKey);
-      }}
-      className="w-5 h-5 flex items-center justify-center rounded-full bg-white/90 shadow-sm 
-        opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
-    >
-      <span className="text-xs text-gray-500">×</span>
-    </button>
-  </div>
-)}
-
-{/* Day number */}
-<div className={`p-1 font-medium ${isToday(day) ? 'text-blue-500' : ''} 
-  ${isPastDay(day) ? 'text-gray-400' : ''}`}>
-  {day}
-</div>
-          
-{/* Time slots container */}
-{fullDayEvent ? (
-  <div className="flex-1 p-1 relative group">
-    <div className="text-xs text-gray-600 truncate">
-      {dayData.morning?.status === 'available' 
-        ? 'Available'
-        : dayData.morning?.eventType && 
-          eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
-    </div>
-  </div>
-) : (
-  <div className="flex-1 flex flex-col gap-1 p-1">
-    {timeSlots.map(timeSlot => {
-      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-      return (
-        <div key={timeSlot} className="relative group">
-          <button
-            onClick={(e) => handleTimeSlotClick(day, timeSlot, e)}
-            disabled={isPastDay(day)}
-            className={`w-full rounded text-[10px] p-1 transition-colors 
-              ${getColorForStatus(availability[dateKey]?.[timeSlot])}
-              ${isPastDay(day) ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <div className="flex justify-between items-center">
-  <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
-  {availability[dateKey]?.[timeSlot]?.eventType && 
-   availability[dateKey]?.[timeSlot]?.status !== 'available' && (
-    <span className="text-[10px] text-gray-600 truncate ml-1">
-      ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
-    </span>
-  )}
-</div>
-          </button>
-          {availability[dateKey]?.[timeSlot] && !isPastDay(day) && (
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      handleDeleteTimeSlot(dateKey, timeSlot);
-    }}
-    className="absolute right-1 top-1/2 -translate-y-1/2
-      w-4 h-4 flex items-center justify-center
-      bg-white/90 rounded-full shadow-sm
-      opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
-  >
-    <span className="text-[10px] text-gray-500 leading-none">×</span>
-  </button>
-)}
-        </div>
-      );
-    })}
-  </div>
-)}
-        </div>
-      );
-    })}
-  </div>
-) : currentView === 'week' ? (
-  <WeekView />
-) : (
-  <ListView />
+    ) : (
+      <WeekView />
+    )}
+  </>
 )}
       </div>
   
