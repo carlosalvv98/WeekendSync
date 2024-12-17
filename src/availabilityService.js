@@ -41,12 +41,18 @@ export const saveAvailability = async (userId, date, timeSlot, status, eventDeta
 
 export const fetchUserAvailability = async (userId, startDate, endDate) => {
   try {
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    const extendedStartDate = new Date(startDateObj.setMonth(startDateObj.getMonth() - 1)).toISOString().split('T')[0];
+    const extendedEndDate = new Date(endDateObj.setMonth(endDateObj.getMonth() + 1)).toISOString().split('T')[0];
+
     const { data, error } = await supabase
       .from('availability')
       .select('*')
       .eq('user_id', userId)
-      .gte('date', startDate)
-      .lte('date', endDate);
+      .gte('date', extendedStartDate)
+      .lte('date', extendedEndDate)
+      .order('date', { ascending: true });
 
     if (error) throw error;
     return data;

@@ -731,8 +731,10 @@ const Calendar = ({ session }) => {
     const loadAvailability = async () => {
         if (!session?.user?.id) return;
         
-        const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        // Get a wider date range (e.g., ±6 months from today)
+        const today = new Date();
+        const startDate = new Date(today.getFullYear(), today.getMonth() - 6, 1);
+        const endDate = new Date(today.getFullYear(), today.getMonth() + 6, 0);
         
         try {
             const data = await fetchUserAvailability(
@@ -773,7 +775,7 @@ const Calendar = ({ session }) => {
     };
 
     loadAvailability();
-}, [currentDate, session?.user?.id]);
+}, [session?.user?.id]);
 
   // =============== Main Render ===============
 return (
