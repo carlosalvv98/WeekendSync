@@ -277,6 +277,10 @@ const Calendar = ({ session }) => {
   
 {/* Days columns */}
 {weekDays.map(date => {
+  console.log('Date:', date);
+  console.log('Timezone Offset:', date.getTimezoneOffset());
+  console.log('ISO String:', date.toISOString());
+
   const dateKey = getDateKey(date.getFullYear(), date.getMonth(), date.getDate());
   const dayData = availability[dateKey];
   const isPast = date < new Date(

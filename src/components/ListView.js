@@ -88,14 +88,14 @@ const ListView = ({ availability, eventTypes }) => {
       if (!Object.values(dayData).some(data => data.status === 'busy')) {
         return acc;
       }
-  
+      
       // Find the first busy slot for this day
       const busySlot = Object.entries(dayData).find(([_, data]) => data.status === 'busy');
       if (!busySlot) return acc;
-  
+      
       const [timeSlot, data] = busySlot;
       const location = data.travel_destination || data.restaurant_name || data.event_location || data.wedding_location || '';
-  
+      
       acc[dateStr] = {
         date: dateStr,
         eventType: data.eventType,
@@ -106,41 +106,42 @@ const ListView = ({ availability, eventTypes }) => {
         partners: data.partners || [],
         details: data
       };
-  
-      return acc;
-    }, {});
-  
-    // Then, merge consecutive days with same event type
-    const sortedDates = Object.keys(consolidatedByDate).sort();
-    let currentEvent = null;
-  
-    sortedDates.forEach(dateStr => {
-      const eventData = consolidatedByDate[dateStr];
       
-      const shouldMerge = currentEvent && 
-        currentEvent.eventType === eventData.eventType && 
-        currentEvent.location === eventData.location &&
-        Math.abs(new Date(dateStr) - new Date(currentEvent.endDate)) <= 24 * 60 * 60 * 1000;
-  
-      if (shouldMerge) {
-        currentEvent.endDate = dateStr;
-      } else {
-        if (currentEvent) {
-          events.push(currentEvent);
+      return acc;
+      }, {});
+      
+      // Then, merge consecutive days with same event type
+      const sortedDates = Object.keys(consolidatedByDate).sort();
+      let currentEvent = null;
+      
+      sortedDates.forEach(dateStr => {
+        const eventData = consolidatedByDate[dateStr];
+        
+        const shouldMerge = currentEvent && 
+          currentEvent.eventType === eventData.eventType && 
+          currentEvent.location === eventData.location &&
+          Math.abs(Date.UTC(new Date(dateStr).getUTCFullYear(), new Date(dateStr).getUTCMonth(), new Date(dateStr).getUTCDate()) - 
+                   Date.UTC(new Date(currentEvent.endDate).getUTCFullYear(), new Date(currentEvent.endDate).getUTCMonth(), new Date(currentEvent.endDate).getUTCDate())) <= 24 * 60 * 60 * 1000;
+      
+        if (shouldMerge) {
+          currentEvent.endDate = dateStr;
+        } else {
+          if (currentEvent) {
+            events.push(currentEvent);
+          }
+          currentEvent = {
+            startDate: dateStr,
+            endDate: dateStr,
+            ...eventData
+          };
         }
-        currentEvent = {
-          startDate: dateStr,
-          endDate: dateStr,
-          ...eventData
-        };
+      });
+      
+      if (currentEvent) {
+        events.push(currentEvent);
       }
-    });
-  
-    if (currentEvent) {
-      events.push(currentEvent);
-    }
-  
-    return events;
+      
+      return events;
   };
 
   const getEventTitle = (event) => {
