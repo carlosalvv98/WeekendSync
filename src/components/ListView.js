@@ -165,21 +165,29 @@ const ListView = ({ availability, eventTypes }) => {
   };
 
   const formatDateRange = (startDate, endDate) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setDate(end.getDate() + 1);
+    // Add time to force correct date interpretation
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
     
     if (startDate === endDate) {
       return start.toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
+        timeZone: 'UTC'  // Force UTC interpretation
       });
     }
     
-    return `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - ${
-      end.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    }`;
+    return `${start.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric',
+      timeZone: 'UTC'
+    })} - ${end.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric',
+      timeZone: 'UTC'
+    })}`;
   };
 
   const getEventColor = (eventType) => {
