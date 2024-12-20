@@ -2,16 +2,22 @@ import { supabase } from './supabaseClient';
 
 export const saveAvailability = async (userId, date, timeSlot, status, eventDetails = {}) => {
   try {
+    // Clean up the event type - remove spaces and ensure proper format
+    const cleanEventType = eventDetails.event_type?.replace(/\s+/g, '_').toLowerCase();
+
+    // Convert open_to_plans status to 'available'
+    const normalizedStatus = status === 'open_to_plans' ? 'available' : 'busy';
 
     console.log('Save Availability Input:', {
       userId,
       date,
       timeSlot,
-      status,
-      eventDetails
+      normalizedStatus,
+      eventDetails,
+      cleanEventType
     });
 
-    if (!['morning', 'afternoon', 'night', 'all'].includes(timeSlot)) {
+    if (!['morning', 'afternoon', 'night'].includes(timeSlot)) {
       throw new Error(`Invalid time slot: ${timeSlot}`);
     }
 
@@ -19,8 +25,8 @@ export const saveAvailability = async (userId, date, timeSlot, status, eventDeta
       user_id: userId,
       date: date,
       time_slot: timeSlot,
-      status: status,
-      event_type: eventDetails.event_type || status,
+      status: normalizedStatus,
+      event_type: cleanEventType,
       travel_destination: eventDetails.travel_destination || null,
       restaurant_name: eventDetails.restaurant_name || null,
       restaurant_location: eventDetails.restaurant_location || null,

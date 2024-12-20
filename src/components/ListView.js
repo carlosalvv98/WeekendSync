@@ -68,11 +68,11 @@ const ListView = ({ availability, eventTypes }) => {
   };
 
   const predefinedEventTypes = [
-    { value: 'traveling', label: 'Traveling', color: 'bg-blue-500' },  // Using opacity modifier
-    { value: 'lunch', label: 'Lunch', color: 'bg-orange-500' },
-    { value: 'dinner', label: 'Dinner', color: 'bg-yellow-500' },
+    { value: 'traveling', label: 'Traveling', color: 'bg-blue-500' },
+    { value: 'lunch', label: 'Lunch', color: 'bg-yellow-500' },
+    { value: 'dinner', label: 'Dinner', color: 'bg-pink-500' },
     { value: 'event', label: 'Event', color: 'bg-indigo-500' },
-    { value: 'wedding', label: 'Wedding', color: 'bg-pink-500' },
+    { value: 'wedding', label: 'Wedding', color: 'bg-orange-500' },
     { value: 'party', label: 'Party', color: 'bg-purple-500' },
     { value: 'family', label: 'Family Time', color: 'bg-red-500' },
     { value: 'work', label: 'Work', color: 'bg-gray-500' },

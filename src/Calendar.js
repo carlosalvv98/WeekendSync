@@ -103,13 +103,13 @@ const Calendar = ({ session }) => {
     { 
       id: 'lunch', 
       label: 'Lunch',
-      baseColor: 'bg-orange-100',
+      baseColor: 'bg-yellow-100',
       selectedColor: 'bg-orange-100 border-orange-500'
     },
     { 
       id: 'dinner', 
       label: 'Dinner',
-      baseColor: 'bg-yellow-100',
+      baseColor: 'bg-pink-100',
       selectedColor: 'bg-yellow-100 border-yellow-500'
     },
     { 
@@ -121,7 +121,7 @@ const Calendar = ({ session }) => {
     { 
       id: 'wedding', 
       label: 'Wedding',
-      baseColor: 'bg-pink-100',
+      baseColor: 'bg-orange-100',
       selectedColor: 'bg-pink-100 border-pink-500'
     },
     { 
@@ -506,52 +506,50 @@ const Calendar = ({ session }) => {
   };
 
   const handleSetAvailability = async (details) => {
-    console.log('Saving availability:', { details, selectedDay, currentDate });
+    console.log('Starting handleSetAvailability with:', details);
     try {
+      // Determine status based on event type
+      const status = details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy';
+      
+      // Prepare the event details payload
+      const eventPayload = {
+        event_type: details.eventType,
+        travel_destination: details.travel_destination || null,
+        restaurant_name: details.restaurant_name || null,
+        restaurant_location: details.restaurant_location || null,
+        event_name: details.event_name || null,
+        event_location: details.event_location || null,
+        wedding_location: details.wedding_location || null,
+        partners: details.partners || [],
+        event_url: details.event_url || null,
+        private_notes: details.private_notes || null,
+        notes: details.notes || null,
+        privacy_level: details.privacy_level || 'public'
+      };
+  
       if (isBulkSelect && startDate && endDate) {
-        console.log('Handling bulk selection');
+        // Handle bulk selection
         let currentDate = new Date(startDate);
         let newAvailability = { ...availability };
         
         while (currentDate <= endDate) {
           const dateStr = currentDate.toISOString().split('T')[0];
-          console.log('Processing date:', dateStr);
           
-          // Save each time slot
-          for (const timeSlot of timeSlots) {
-            console.log('Saving time slot:', {
-              userId: session?.user?.id,
-              dateStr,
-              timeSlot,
-              details
-            });
-
+          // Save all time slots for each day
+          for (const slot of timeSlots) {
             await saveAvailability(
               session.user.id,
               dateStr,
-              timeSlot,
-              details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
-              {
-                event_type: details.eventType,
-                travel_destination: details.travel_destination || null,
-                restaurant_name: details.restaurant_name || null,
-                restaurant_location: details.restaurant_location || null,
-                event_name: details.event_name || null,
-                event_location: details.event_location || null,
-                wedding_location: details.wedding_location || null,
-                partners: details.partners || [],
-                event_url: details.event_url || null,
-                private_notes: details.private_notes || null,
-                notes: details.notes || null,
-                privacy_level: details.privacy_level || 'public'
-              }
+              slot,
+              status,
+              eventPayload
             );
             
             if (!newAvailability[dateStr]) {
               newAvailability[dateStr] = {};
             }
-            newAvailability[dateStr][timeSlot] = {
-              status: details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
+            newAvailability[dateStr][slot] = {
+              status,
               eventType: details.eventType,
               ...details
             };
@@ -560,119 +558,69 @@ const Calendar = ({ session }) => {
           currentDate.setDate(currentDate.getDate() + 1);
         }
         setAvailability(newAvailability);
+        
       } else if (selectedDay) {
-        console.log('Handling single day selection:', selectedDay);
+        // Handle single day selection
         const { day, timeSlot } = selectedDay;
         const dateStr = new Date(
           currentDate.getFullYear(),
           currentDate.getMonth(),
           day
         ).toISOString().split('T')[0];
-
-        console.log('Generated dateStr:', dateStr);
   
         if (timeSlot === 'all') {
-          console.log('Handling full day');
-          // Handle full day
+          // Save all time slots for the day
           for (const slot of timeSlots) {
-            console.log('Saving slot:', {
-              userId: session?.user?.id,
-              dateStr,
-              slot,
-              details
-            });
-
-            try {
-              await saveAvailability(
-                session.user.id,
-                dateStr,
-                slot,
-                details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
-                {
-                  event_type: details.eventType,
-                  travel_destination: details.travel_destination || null,
-                  restaurant_name: details.restaurant_name || null,
-                  restaurant_location: details.restaurant_location || null,
-                  event_name: details.event_name || null,
-                  event_location: details.event_location || null,
-                  wedding_location: details.wedding_location || null,
-                  partners: details.partners || [],
-                  event_url: details.event_url || null,
-                  private_notes: details.private_notes || null,
-                  notes: details.notes || null,
-                  privacy_level: details.privacy_level || 'public'
-                }
-              );
-            } catch (slotError) {
-              console.error('Error saving slot:', slot, slotError);
-              throw slotError;
-            }
-          }
-        } else {
-          console.log('Handling single time slot:', {
-            userId: session?.user?.id,
-            dateStr,
-            timeSlot,
-            details
-          });
-
-          try {
             await saveAvailability(
               session.user.id,
               dateStr,
-              timeSlot,
-              details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
-              {
-                event_type: details.eventType,
-                travel_destination: details.travel_destination || null,
-                restaurant_name: details.restaurant_name || null,
-                restaurant_location: details.restaurant_location || null,
-                event_name: details.event_name || null,
-                event_location: details.event_location || null,
-                wedding_location: details.wedding_location || null,
-                partners: details.partners || [],
-                event_url: details.event_url || null,
-                private_notes: details.private_notes || null,
-                notes: details.notes || null,
-                privacy_level: details.privacy_level || 'public'
-              }
+              slot,
+              status,
+              eventPayload
             );
-          } catch (slotError) {
-            console.error('Error saving single slot:', slotError);
-            throw slotError;
           }
+        } else {
+          // Save single time slot
+          await saveAvailability(
+            session.user.id,
+            dateStr,
+            timeSlot,
+            status,
+            eventPayload
+          );
         }
   
         // Update local state
         setAvailability(prev => ({
           ...prev,
-          [dateStr]: timeSlot === 'all' 
+          [dateStr]: timeSlot === 'all'
             ? timeSlots.reduce((acc, slot) => ({
                 ...acc,
-                [slot]: { 
-                  status: details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
+                [slot]: {
+                  status,
                   eventType: details.eventType,
-                  ...details 
+                  ...details
                 }
               }), {})
             : {
                 ...prev[dateStr],
-                [timeSlot]: { 
-                  status: details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
+                [timeSlot]: {
+                  status,
                   eventType: details.eventType,
-                  ...details 
+                  ...details
                 }
               }
         }));
       }
-      
+  
+      // Clean up
       setShowEventModal(false);
       setSelectedDay(null);
       setIsBulkSelect(false);
       setDateRange([null, null]);
+      
     } catch (error) {
-      console.error('Full error details:', error);
-      console.error('Error stack:', error.stack);
+      console.error('Error in handleSetAvailability:', error);
       alert('Failed to save availability. Please try again.');
     }
   };

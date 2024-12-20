@@ -158,7 +158,6 @@ const AvailabilityModal = ({
     attendee_count: existingAvailability?.attendee_count || 0
   });
 
-  // Time slots with "All Day" option
   const timeSlots = [
     { id: 'all', label: 'All Day' },
     { id: 'morning', label: 'Morning' },
@@ -170,10 +169,10 @@ const AvailabilityModal = ({
   const eventTypes = [
     { id: 'open_to_plans', label: 'Open to plans', baseColor: 'bg-green-100', selectedColor: 'bg-green-100 border-2 border-green-500 shadow-sm' },
     { id: 'traveling', label: 'Traveling', baseColor: 'bg-blue-100', selectedColor: 'bg-blue-100 border-2 border-blue-500 shadow-sm' },
-    { id: 'lunch', label: 'Lunch', baseColor: 'bg-orange-100', selectedColor: 'bg-orange-100 border-2 border-orange-500 shadow-sm' },
-    { id: 'dinner', label: 'Dinner', baseColor: 'bg-yellow-100', selectedColor: 'bg-yellow-100 border-2 border-yellow-500 shadow-sm' },
+    { id: 'lunch', label: 'Lunch', baseColor: 'bg-yellow-100', selectedColor: 'bg-yellow-100 border-2 border-yellow-500 shadow-sm' },
+    { id: 'dinner', label: 'Dinner', baseColor: 'bg-pink-100', selectedColor: 'bg-pink-100 border-2 border-pink-500 shadow-sm' },
     { id: 'event', label: 'Event', baseColor: 'bg-indigo-100', selectedColor: 'bg-indigo-100 border-2 border-indigo-500 shadow-sm' },
-    { id: 'wedding', label: 'Wedding', baseColor: 'bg-pink-100', selectedColor: 'bg-pink-100 border-2 border-pink-500 shadow-sm' },
+    { id: 'wedding', label: 'Wedding', baseColor: 'bg-orange-100', selectedColor: 'bg-orange-100 border-2 border-orange-500 shadow-sm' },
     { id: 'party', label: 'Party', baseColor: 'bg-purple-100', selectedColor: 'bg-purple-100 border-2 border-purple-500 shadow-sm' },
     { id: 'family', label: 'Family Time', baseColor: 'bg-red-100', selectedColor: 'bg-red-100 border-2 border-red-500 shadow-sm' },
     { id: 'work', label: 'Work', baseColor: 'bg-gray-100', selectedColor: 'bg-gray-100 border-2 border-gray-500 shadow-sm' },
@@ -668,7 +667,7 @@ const AvailabilityModal = ({
           {/* Tabs */}
           <div className="relative flex gap-1 mt-6">
             {[
-              { id: 'when', icon: Calendar, label: 'When' },
+              { id: 'dates', icon: Calendar, label: 'Dates' },
               { id: 'status', icon: Plane, label: 'Status' },
               { id: 'details', icon: Settings, label: 'Details' }
             ].map(tab => (
@@ -677,20 +676,20 @@ const AvailabilityModal = ({
                 onClick={() => {
                   // Check if button should be clickable
                   if (tab.id === 'details' && (!selectedDay || !selectedEventType)) {
-                    return; // Do nothing if conditions aren't met
+                    return;
                   }
                   if (tab.id === 'status' && !selectedDay && !isBulkSelect) {
-                    return; // Do nothing if conditions aren't met
+                    return; 
                   }
                   setActiveTab(tab.id);
                 }}
                 className={`
-                  flex items-center gap-2 px-4 py-2 text-sm font-medium
+                  flex items-center gap-2 px-10 py-2 text-sm font-medium
                   border-t border-l border-r rounded-t-lg relative
                   transition-all duration-200
                   ${activeTab === tab.id 
-                    ? 'bg-white text-blue-600 border-gray-200 -mb-px' 
-                    : 'text-gray-600 bg-gray-50 border-transparent hover:bg-gray-100'
+                    ? 'bg-blue-50 text-blue-600 border-blue-200 -mb-px' 
+                    : 'text-gray-600 bg-gray-100 border-gray-50 hover:bg-gray-200'
                   }
                   ${tab.id === 'status' && !selectedDay && !isBulkSelect ? 'opacity-50 cursor-not-allowed' : ''}
                   ${tab.id === 'details' && (!selectedDay || !selectedEventType) ? 'opacity-50 cursor-not-allowed' : ''}
@@ -713,7 +712,7 @@ const AvailabilityModal = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              {activeTab === 'when' && (
+              {activeTab === 'dates' && (
                 <div className="space-y-4">
                   {/* Privacy Toggle */}
                   <div className="mb-6">
@@ -759,8 +758,8 @@ const AvailabilityModal = ({
                               onClick={() => setTimeSlot(slot.id)}
                               className={`w-full px-3 py-2 text-sm text-left rounded-md ${
                                 timeSlot === slot.id
-                                  ? 'bg-blue-50 text-blue-700 font-medium'
-                                  : 'hover:bg-gray-50'
+                                  ? 'bg-blue-100 text-blue-700 font-medium'
+                                  : 'hover:bg-gray-100'
                               }`}
                             >
                               {slot.label}
@@ -812,16 +811,19 @@ const AvailabilityModal = ({
                           // Auto save for "Open to plans"
                           const savedData = {
                             eventType: type.id,
+                            status: 'open_to_plans',
                             privacy_level: privacyLevel,
                             timeSlot: isBulkSelect ? 'all' : timeSlot,
+                            // Add empty values for required fields
+                            travel_destination: null,
+                            restaurant_name: null,
+                            restaurant_location: null,
+                            event_name: null,
+                            event_location: null,
+                            notes: null
                           };
                           onSave(savedData);
                           onClose();
-                        } else {
-                          // Normal flow for other statuses
-                          setShowUndoButton(true);
-                          setTimeout(() => setActiveTab('details'), 300);
-                          setTimeout(() => setShowUndoButton(false), 3000);
                         }
                       }}
                       className={`
