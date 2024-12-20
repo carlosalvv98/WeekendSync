@@ -11,6 +11,7 @@ import {
   deleteAvailability 
 } from './availabilityService';
 import ListView from './components/ListView';
+import CreateActionButton from './components/CreateActionButton';
 
 
 
@@ -38,6 +39,8 @@ const Calendar = ({ session }) => {
   const [selectedEventType, setSelectedEventType] = useState(null);
   const [activeTab, setActiveTab] = useState('when');
   const [showEventDetails, setShowEventDetails] = useState(false);
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [selectionMode, setSelectionMode] = useState('none'); 
   const [eventDetails, setEventDetails] = useState({
     travel_destination: '',
     restaurant_name: '',
@@ -479,24 +482,32 @@ const Calendar = ({ session }) => {
     e?.stopPropagation();
     const clickDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-    const isPast = isPastDay(clickDate);
-    
-    setSelectedDay({ day, timeSlot: 'all' });
-    setIsBulkSelect(false);
-    
-    // Get existing availability if any
     const existingData = availability[dateKey];
-    let existingAvailability = existingData; 
+    
+    if (isPastDay(clickDate)) {
+      if (availability[dateKey]) {
+        setShowPastEventModal(true);
+      }
+      return;
+    }
   
-    // modal logic
-    if (isPast && existingData) {
-      setShowPastEventModal(true);
-    } else if (!isPast) {
+    if (selectionMode === 'select') {
+      // Handle multi-select
+      setSelectedDates(prev => {
+        const isSelected = prev.includes(dateKey);
+        if (isSelected) {
+          return prev.filter(d => d !== dateKey);
+        } else {
+          return [...prev, dateKey];
+        }
+      });
+    } else {
+      // Regular single day selection
+      setSelectedDay({ day, timeSlot: 'all' });
+      setExistingAvailabilityData(existingData);
       setShowEventModal(true);
       setActiveTab('status');
     }
-    
-    setExistingAvailabilityData(existingAvailability);
   };
 
   const handleBulkSelect = () => {
@@ -737,70 +748,71 @@ return (
   <>
     <div className="bg-white rounded-lg shadow p-6">
       {/* Calendar Header */}
-<div className="flex justify-between items-center mb-6">
-  <div className="space-y-2">
-    {currentView !== 'list' && (
-      <h2 className="text-2xl font-bold">
-        {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-      </h2>
-    )}
+<div className="flex flex-col gap-4 mb-6">
+  {/* Top row with ViewSwitcher and action buttons */}
+  <div className="flex justify-between items-center">
     <ViewSwitcher 
       currentView={currentView}
       onViewChange={setCurrentView}
     />
+    
+    <div className="flex items-center gap-2">
+      <CreateActionButton 
+        onSelect={(actionType) => {
+          setSelectedEventType(actionType);
+          setShowEventModal(true);
+          setActiveTab('dates');
+        }} 
+      />
+
+      <button 
+        onClick={() => setSelectionMode(prev => prev === 'select' ? 'none' : 'select')}
+        className={`p-2 px-4 rounded-lg flex items-center gap-2 ${
+          selectionMode === 'select' 
+            ? 'bg-blue-100 text-blue-700' 
+            : 'bg-purple-100 hover:bg-purple-200'
+        }`}
+      >
+        <CalendarDays size={16} />
+        <span>Select</span>
+      </button>
+
+      <div className="h-6 w-px bg-gray-200"></div>
+
+      <button 
+        onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
+        className="p-2 rounded-lg hover:bg-gray-100"
+      >
+        ←
+      </button>
+      <button 
+        onClick={() => setCurrentDate(new Date())}
+        className="p-2 px-4 rounded-lg bg-blue-100 hover:bg-blue-200"
+      >
+        Today
+      </button>
+      <button 
+        onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
+        className="p-2 rounded-lg hover:bg-gray-100"
+      >
+        →
+      </button>
+    </div>
   </div>
 
-        {currentView !== 'list' && (
-          <div className="flex items-center gap-2 relative">
-            <div className="relative">
-              <button 
-                onClick={handleBulkSelect}
-                onMouseEnter={() => setShowTip(true)}
-                onMouseLeave={() => setShowTip(false)}
-                className="p-2 px-4 rounded-lg bg-purple-100 hover:bg-purple-200 flex items-center gap-2"
-              >
-                <CalendarDays size={16} />
-                <span>Bulk Select</span>
-              </button>
-              {showTip && (
-                <div className="absolute z-10 w-64 bg-gray-800 text-white text-xs rounded p-2 -bottom-20 left-0">
-                  Pro Tips:
-                  <ul className="mt-1 ml-2">
-                    <li>• Select a date range for bulk updates</li>
-                    <li>• Click a day to set all time slots at once</li>
-                    <li>• Click individual time slots for precise control</li>
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            <div className="h-6 w-px bg-gray-200"></div>
-
-            <button 
-              onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              ←
-            </button>
-            <button 
-              onClick={() => setCurrentDate(new Date())}
-              className="p-2 px-4 rounded-lg bg-blue-100 hover:bg-blue-200"
-            >
-              Today
-            </button>
-            <button 
-              onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              →
-            </button>
-          </div>
-        )}
-      </div>
+  {/* Bottom row with month/year */}
+  {currentView !== 'list' && (
+    <div>
+      <h2 className="text-2xl font-bold">
+        {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+      </h2>
+    </div>
+  )}
+</div>
   
         {/* View Container */}
-{currentView === 'list' ? (
-  <ListView availability={availability} eventTypes={eventTypes} />
+          {currentView === 'list' ? (
+            <ListView availability={availability} eventTypes={eventTypes} />
 ) : (
   <>
     {currentView === 'month' ? (
