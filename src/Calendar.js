@@ -36,6 +36,7 @@ const Calendar = ({ session }) => {
   const [existingAvailabilityData, setExistingAvailabilityData] = useState(null);
   const [showPastEventModal, setShowPastEventModal] = useState(false);
   const [selectedEventType, setSelectedEventType] = useState(null);
+  const [activeTab, setActiveTab] = useState('when');
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [eventDetails, setEventDetails] = useState({
     travel_destination: '',
@@ -88,63 +89,63 @@ const Calendar = ({ session }) => {
   const timeSlots = ['morning', 'afternoon', 'night'];
   const eventTypes = [
     { 
-      id: 'available', 
-      label: 'Available',
-      baseColor: 'bg-green-50',
+      id: 'open_to_plans', 
+      label: 'Open to plans',
+      baseColor: 'bg-green-100',
       selectedColor: 'bg-green-100 border-green-500'
     },
     { 
       id: 'traveling', 
       label: 'Traveling',
-      baseColor: 'bg-blue-50',
+      baseColor: 'bg-blue-100',
       selectedColor: 'bg-blue-100 border-blue-500'
     },
     { 
       id: 'lunch', 
       label: 'Lunch',
-      baseColor: 'bg-orange-50',
+      baseColor: 'bg-orange-100',
       selectedColor: 'bg-orange-100 border-orange-500'
     },
     { 
       id: 'dinner', 
       label: 'Dinner',
-      baseColor: 'bg-yellow-50',
+      baseColor: 'bg-yellow-100',
       selectedColor: 'bg-yellow-100 border-yellow-500'
     },
     { 
       id: 'event', 
       label: 'Event',
-      baseColor: 'bg-indigo-50',
+      baseColor: 'bg-indigo-100',
       selectedColor: 'bg-indigo-100 border-indigo-500'
     },
     { 
       id: 'wedding', 
       label: 'Wedding',
-      baseColor: 'bg-pink-50',
+      baseColor: 'bg-pink-100',
       selectedColor: 'bg-pink-100 border-pink-500'
     },
     { 
       id: 'party', 
       label: 'Party',
-      baseColor: 'bg-purple-50',
+      baseColor: 'bg-purple-100',
       selectedColor: 'bg-purple-100 border-purple-500'
     },
     { 
       id: 'family', 
       label: 'Family Time',
-      baseColor: 'bg-red-50',
+      baseColor: 'bg-red-100',
       selectedColor: 'bg-red-100 border-red-500'
     },
     { 
       id: 'work', 
       label: 'Work',
-      baseColor: 'bg-gray-50',
+      baseColor: 'bg-gray-100',
       selectedColor: 'bg-gray-100 border-gray-500'
     },
     { 
       id: 'other', 
       label: 'Other',
-      baseColor: 'bg-gray-50',
+      baseColor: 'bg-gray-100',
       selectedColor: 'bg-gray-100 border-gray-500'
     }
 ];
@@ -211,9 +212,9 @@ const Calendar = ({ session }) => {
 
   // Get color class based on availability status
   const getColorForStatus = (dayData, isFullDay = false) => {
-    if (!dayData) return 'bg-white hover:bg-gray-50';
+    if (!dayData) return 'bg-white hover:bg-gray-100';
     
-    if (dayData.status === 'available') {
+    if (dayData.status === 'open_to_plans') {
         return isFullDay ? 'bg-green-100 opacity-75' : 'bg-green-100 hover:bg-green-200 opacity-75';
     } else if (dayData.status === 'busy') {
         const eventType = eventTypes.find(e => e.id === dayData.eventType);
@@ -307,8 +308,8 @@ const Calendar = ({ session }) => {
   `}
 >
   <div className="h-full flex items-center justify-center">
-    {dayData.morning?.status === 'available' ? (
-      'Available'
+    {dayData.morning?.status === 'open_to_plans' ? (
+      'Open to plans'
     ) : (
       dayData.morning?.eventType && (
         <span className="text-gray-600">
@@ -344,8 +345,8 @@ const Calendar = ({ session }) => {
         disabled={isPast}
         className={`h-20 w-full rounded text-xs ${getColorForStatus(dayData?.[timeSlot])} ${isPast ? 'opacity-50 cursor-not-allowed' : ''} ${index !== timeSlots.length - 1 ? 'border-b border-dotted border-gray-300' : ''} ${isToday(date.getDate()) ? 'border-2 border-blue-500' : ''}`}
       >
-        {dayData?.[timeSlot]?.status === 'available' ? (
-          'Available'
+        {dayData?.[timeSlot]?.status === 'open_to_plans' ? (
+          'Open to plans'
         ) : (
           dayData?.[timeSlot]?.eventType && (
             <span className="text-gray-600 truncate">
@@ -373,10 +374,10 @@ const Calendar = ({ session }) => {
       const dayData = availability[day];
       if (dayData) {
         if (isFullDayEvent(dayData)) {
-          if (dayData.morning?.status === 'available') return 'bg-green-100';
+          if (dayData.morning?.status === 'open_to_plans') return 'bg-green-100';
           if (dayData.morning?.status === 'busy') return 'bg-red-100';
         } else {
-          const hasAvailable = Object.values(dayData).some(slot => slot?.status === 'available');
+          const hasAvailable = Object.values(dayData).some(slot => slot?.status === 'open_to_plans');
           const hasBusy = Object.values(dayData).some(slot => slot?.status === 'busy');
           if (hasAvailable) return 'bg-green-50';
           if (hasBusy) return 'bg-red-50';
@@ -410,6 +411,7 @@ const Calendar = ({ session }) => {
         };
       }
       
+      setActiveTab('status');
       setShowEventModal(true);
       setExistingAvailabilityData(existingAvailability);
     }
@@ -491,10 +493,11 @@ const Calendar = ({ session }) => {
       setShowPastEventModal(true);
     } else if (!isPast) {
       setShowEventModal(true);
+      setActiveTab('status');
     }
     
     setExistingAvailabilityData(existingAvailability);
-};
+  };
 
   const handleBulkSelect = () => {
     setDateRange([null, null]);
@@ -527,7 +530,7 @@ const Calendar = ({ session }) => {
               session.user.id,
               dateStr,
               timeSlot,
-              details.eventType === 'available' ? 'available' : 'busy',
+              details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
               {
                 event_type: details.eventType,
                 travel_destination: details.travel_destination || null,
@@ -548,7 +551,7 @@ const Calendar = ({ session }) => {
               newAvailability[dateStr] = {};
             }
             newAvailability[dateStr][timeSlot] = {
-              status: details.eventType === 'available' ? 'available' : 'busy',
+              status: details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
               eventType: details.eventType,
               ...details
             };
@@ -584,7 +587,7 @@ const Calendar = ({ session }) => {
                 session.user.id,
                 dateStr,
                 slot,
-                details.eventType === 'available' ? 'available' : 'busy',
+                details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
                 {
                   event_type: details.eventType,
                   travel_destination: details.travel_destination || null,
@@ -618,7 +621,7 @@ const Calendar = ({ session }) => {
               session.user.id,
               dateStr,
               timeSlot,
-              details.eventType === 'available' ? 'available' : 'busy',
+              details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
               {
                 event_type: details.eventType,
                 travel_destination: details.travel_destination || null,
@@ -647,7 +650,7 @@ const Calendar = ({ session }) => {
             ? timeSlots.reduce((acc, slot) => ({
                 ...acc,
                 [slot]: { 
-                  status: details.eventType === 'available' ? 'available' : 'busy',
+                  status: details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
                   eventType: details.eventType,
                   ...details 
                 }
@@ -655,7 +658,7 @@ const Calendar = ({ session }) => {
             : {
                 ...prev[dateStr],
                 [timeSlot]: { 
-                  status: details.eventType === 'available' ? 'available' : 'busy',
+                  status: details.eventType === 'open_to_plans' ? 'open_to_plans' : 'busy',
                   eventType: details.eventType,
                   ...details 
                 }
@@ -939,8 +942,8 @@ return (
               {fullDayEvent ? (
                 <div className="flex-1 p-1 relative group">
                   <div className="text-xs text-gray-600 truncate">
-                    {dayData.morning?.status === 'available' 
-                      ? 'Available'
+                    {dayData.morning?.status === 'open_to_plans' 
+                      ? 'Open to plans'
                       : dayData.morning?.eventType && 
                         eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
                   </div>
@@ -961,7 +964,7 @@ return (
                           <div className="flex justify-between items-center">
                             <span>{timeSlot.charAt(0).toUpperCase() + timeSlot.slice(1)}</span>
                             {availability[dateKey]?.[timeSlot]?.eventType && 
-                             availability[dateKey]?.[timeSlot]?.status !== 'available' && (
+                             availability[dateKey]?.[timeSlot]?.status !== 'open_to_plans' && (
                               <span className="text-[10px] text-gray-600 truncate ml-1">
                                 ({eventTypes.find(e => e.id === availability[dateKey][timeSlot].eventType)?.label})
                               </span>
@@ -1021,6 +1024,8 @@ return (
     currentDate={currentDate}
     setSelectedDay={setSelectedDay}
     existingAvailability={existingAvailabilityData} 
+    activeTab={activeTab}
+    setActiveTab={setActiveTab}
   />
 )}
 {/* Past Event Modal */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Calendar, Plane, Settings, Globe,
   MapPin, Users, Link as LinkIcon, 
@@ -8,6 +8,110 @@ import DatePicker from 'react-datepicker';
 import { AnimatePresence, motion } from 'framer-motion';
 import "react-datepicker/dist/react-datepicker.css";
 import './calendarStyles.css';
+
+const MultiSelect = ({ options, value, onChange, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(option => 
+    option.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Sort options to show selected ones first
+  const sortedOptions = [...filteredOptions].sort((a, b) => {
+    const aSelected = value.includes(a.value);
+    const bSelected = value.includes(b.value);
+    if (aSelected && !bSelected) return -1;
+    if (!aSelected && bSelected) return 1;
+    return 0;
+  });
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full p-2 text-sm border rounded-md bg-white cursor-pointer flex justify-between items-center"
+      >
+        <div className="flex flex-wrap gap-1">
+          {value.length === 0 ? (
+            <span className="text-gray-400">{placeholder}</span>
+          ) : (
+            value.map(val => {
+              const option = options.find(opt => opt.value === val);
+              return (
+                <span key={val} className="bg-blue-100 text-blue-800 rounded px-2 py-0.5 text-sm">
+                  {option?.label}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange(value.filter(v => v !== val));
+                    }}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })
+          )}
+        </div>
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="p-2 border-b sticky top-0 bg-white">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-1 text-sm border rounded"
+              placeholder="Search..."
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="p-2">
+            {sortedOptions.map((option) => (
+              <div
+                key={option.value}
+                className="flex items-center p-2 hover:bg-gray-50 cursor-pointer"
+                onClick={() => {
+                  const newValue = value.includes(option.value)
+                    ? value.filter(v => v !== option.value)
+                    : [...value, option.value];
+                  onChange(newValue);
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={value.includes(option.value)}
+                  onChange={() => {}}
+                  className="mr-2"
+                />
+                <span className="text-sm">{option.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AvailabilityModal = ({ 
   isOpen, 
@@ -22,10 +126,11 @@ const AvailabilityModal = ({
   currentDate,
   setSelectedDay, 
   existingAvailability = null,
-  friends = []
+  friends = [],
+  activeTab,
+  setActiveTab
 }) => {
   // Core state
-  const [activeTab, setActiveTab] = useState('when');
   const [selectedEventType, setSelectedEventType] = useState(
     existingAvailability?.eventType || null
   );
@@ -63,17 +168,17 @@ const AvailabilityModal = ({
 
   // Event types with proper styling
   const eventTypes = [
-    { id: 'available', label: 'Available', baseColor: 'bg-green-50', selectedColor: 'bg-green-100 border-green-500' },
-    { id: 'traveling', label: 'Traveling', baseColor: 'bg-blue-50', selectedColor: 'bg-blue-100 border-blue-500' },
-    { id: 'lunch', label: 'Lunch', baseColor: 'bg-orange-50', selectedColor: 'bg-orange-100 border-orange-500' },
-    { id: 'dinner', label: 'Dinner', baseColor: 'bg-yellow-50', selectedColor: 'bg-yellow-100 border-yellow-500' },
-    { id: 'event', label: 'Event', baseColor: 'bg-indigo-50', selectedColor: 'bg-indigo-100 border-indigo-500' },
-    { id: 'wedding', label: 'Wedding', baseColor: 'bg-pink-50', selectedColor: 'bg-pink-100 border-pink-500' },
-    { id: 'party', label: 'Party', baseColor: 'bg-purple-50', selectedColor: 'bg-purple-100 border-purple-500' },
-    { id: 'family', label: 'Family Time', baseColor: 'bg-red-50', selectedColor: 'bg-red-100 border-red-500' },
-    { id: 'work', label: 'Work', baseColor: 'bg-gray-50', selectedColor: 'bg-gray-100 border-gray-500' },
-    { id: 'other', label: 'Other', baseColor: 'bg-gray-50', selectedColor: 'bg-gray-100 border-gray-500' }
-  ];
+    { id: 'open_to_plans', label: 'Open to plans', baseColor: 'bg-green-100', selectedColor: 'bg-green-100 border-2 border-green-500 shadow-sm' },
+    { id: 'traveling', label: 'Traveling', baseColor: 'bg-blue-100', selectedColor: 'bg-blue-100 border-2 border-blue-500 shadow-sm' },
+    { id: 'lunch', label: 'Lunch', baseColor: 'bg-orange-100', selectedColor: 'bg-orange-100 border-2 border-orange-500 shadow-sm' },
+    { id: 'dinner', label: 'Dinner', baseColor: 'bg-yellow-100', selectedColor: 'bg-yellow-100 border-2 border-yellow-500 shadow-sm' },
+    { id: 'event', label: 'Event', baseColor: 'bg-indigo-100', selectedColor: 'bg-indigo-100 border-2 border-indigo-500 shadow-sm' },
+    { id: 'wedding', label: 'Wedding', baseColor: 'bg-pink-100', selectedColor: 'bg-pink-100 border-2 border-pink-500 shadow-sm' },
+    { id: 'party', label: 'Party', baseColor: 'bg-purple-100', selectedColor: 'bg-purple-100 border-2 border-purple-500 shadow-sm' },
+    { id: 'family', label: 'Family Time', baseColor: 'bg-red-100', selectedColor: 'bg-red-100 border-2 border-red-500 shadow-sm' },
+    { id: 'work', label: 'Work', baseColor: 'bg-gray-100', selectedColor: 'bg-gray-100 border-2 border-gray-500 shadow-sm' },
+    { id: 'other', label: 'Other', baseColor: 'bg-gray-50', selectedColor: 'bg-gray-100 border-2 border-gray-500 shadow-sm' }
+];
 
   // Date formatting
   const formatDate = (date) => {
@@ -96,8 +201,8 @@ const AvailabilityModal = ({
 
   // Dynamic form fields based on event type
   const getEventFields = () => {
-    if (!selectedEventType || selectedEventType === 'available') return null;
-
+    if (!selectedEventType || selectedEventType === 'open_to_plans') return null;
+  
     const commonFields = (
       <div className="space-y-4">
         <div>
@@ -112,19 +217,19 @@ const AvailabilityModal = ({
               notes: e.target.value
             }))}
             className="w-full p-2 text-sm border rounded-md"
-            placeholder="Add any notes..."
+            placeholder="Add any notes or details..."
             rows={3}
           />
         </div>
       </div>
     );
-
+  
     switch (selectedEventType) {
       case 'traveling':
         return (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-6">
+              <label className="block text-sm font-medium text-gray-600 mb-1">
                 <MapPin className="w-4 h-4 inline mr-2" />
                 Where to?
               </label>
@@ -139,41 +244,398 @@ const AvailabilityModal = ({
                 placeholder="Enter destination"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+
+            <div className="col-span-6">
+              <label className="block text-sm font-medium text-gray-600 mb-1">
                 <Users className="w-4 h-4 inline mr-2" />
                 With who?
               </label>
-              <select
-                value={eventDetails.partners[0] || ''}
+              <MultiSelect
+                options={[
+                  { value: 'create', label: 'Create Trip' },
+                  { value: 'suggest', label: 'Suggest Partner' },
+                  { value: 'alone', label: 'Alone' },
+                  ...friends.map(friend => ({
+                    value: friend.id,
+                    label: friend.username
+                  }))
+                ]}
+                value={eventDetails.partners || []}
+                onChange={(newValue) => setEventDetails(prev => ({
+                  ...prev,
+                  partners: newValue
+                }))}
+                placeholder="Choose..."
+              />
+            </div>
+
+            <div className="col-span-12 mt-4">
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                <ClipboardList className="w-4 h-4 inline mr-2" />
+                Additional Details
+              </label>
+              <textarea
+                value={eventDetails.notes}
                 onChange={(e) => setEventDetails(prev => ({
                   ...prev,
-                  partners: e.target.value ? [e.target.value] : []
+                  notes: e.target.value
                 }))}
                 className="w-full p-2 text-sm border rounded-md"
-              >
-                <option value="">Choose...</option>
-                <option value="create">Create Trip</option>
-                <option value="suggest">Suggest Partner</option>
-                <option value="alone">Alone</option>
-                {friends.map(friend => (
-                  <option key={friend.id} value={friend.id}>
-                    {friend.username}
-                  </option>
-                ))}
-              </select>
+                placeholder="Add any notes or details..."
+                rows={3}
+              />
             </div>
-            {commonFields}
           </div>
         );
 
-      // Add other cases for different event types
-      // ... (keeping the same structure from your existing modal)
+      case 'lunch':
+      case 'dinner':
+        return (
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-6">
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                <MapPin className="w-4 h-4 inline mr-2" />
+                Where
+              </label>
+              <input
+                type="text"
+                value={eventDetails.restaurant_name}
+                onChange={(e) => setEventDetails(prev => ({
+                  ...prev,
+                  restaurant_name: e.target.value
+                }))}
+                className="w-full p-2 text-sm border rounded-md"
+                placeholder="Enter restaurant/place"
+              />
+            </div>
 
-      default:
-        return commonFields;
-    }
-  };
+            <div className="col-span-6">
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                <Users className="w-4 h-4 inline mr-2" />
+                With who?
+              </label>
+              <MultiSelect
+                options={[
+                  { value: 'create', label: 'Create Plan' },
+                  { value: 'alone', label: 'Alone' },
+                  ...friends.map(friend => ({
+                    value: friend.id,
+                    label: friend.username
+                  }))
+                ]}
+                value={eventDetails.partners || []}
+                onChange={(newValue) => setEventDetails(prev => ({
+                  ...prev,
+                  partners: newValue
+                }))}
+                placeholder="Choose..."
+              />
+            </div>
+
+            <div className="col-span-12 mt-4">
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                <ClipboardList className="w-4 h-4 inline mr-2" />
+                Additional Details
+              </label>
+              <textarea
+                value={eventDetails.notes}
+                onChange={(e) => setEventDetails(prev => ({
+                  ...prev,
+                  notes: e.target.value
+                }))}
+                className="w-full p-2 text-sm border rounded-md"
+                placeholder="Add any notes or details..."
+                rows={3}
+              />
+            </div>
+          </div>
+        );
+  
+        case 'wedding':
+          return (
+            <div className="grid grid-cols-12 gap-4">
+              <div className="col-span-6">
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  <MapPin className="w-4 h-4 inline mr-2" />
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={eventDetails.wedding_location}
+                  onChange={(e) => setEventDetails(prev => ({
+                    ...prev,
+                    wedding_location: e.target.value
+                  }))}
+                  className="w-full p-2 text-sm border rounded-md"
+                  placeholder="Enter place"
+                />
+              </div>
+              
+              <div className="col-span-6">
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  <Users className="w-4 h-4 inline mr-2" />
+                  Event
+                </label>
+                <MultiSelect
+                  options={friends.map(friend => ({
+                    value: friend.id,
+                    label: friend.username
+                  }))}
+                  value={eventDetails.wedding_couple || []}
+                  onChange={(newValue) => setEventDetails(prev => ({
+                    ...prev,
+                    wedding_couple: newValue
+                  }))}
+                  placeholder="Choose who's getting married..."
+                />
+              </div>
+
+              <div className="col-span-12 mt-4">
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  <ClipboardList className="w-4 h-4 inline mr-2" />
+                  Additional Details
+                </label>
+                <textarea
+                  value={eventDetails.notes}
+                  onChange={(e) => setEventDetails(prev => ({
+                    ...prev,
+                    notes: e.target.value
+                  }))}
+                  className="w-full p-2 text-sm border rounded-md"
+                  placeholder="Add any notes or details..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          );
+    
+          case 'event':
+            return (
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-6">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <MapPin className="w-4 h-4 inline mr-2" />
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={eventDetails.event_location}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      event_location: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Enter place"
+                  />
+                </div>
+          
+                <div className="col-span-6">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Event
+                  </label>
+                  <input
+                    type="text"
+                    value={eventDetails.event_name}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      event_name: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="What's the event?"
+                  />
+                </div>
+          
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <LinkIcon className="w-4 h-4 inline mr-2" />
+                    Link to event
+                  </label>
+                  <input
+                    type="url"
+                    value={eventDetails.event_url}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      event_url: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Show your friends where to get tickets!"
+                  />
+                </div>
+          
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <ClipboardList className="w-4 h-4 inline mr-2" />
+                    Additional Details
+                  </label>
+                  <textarea
+                    value={eventDetails.notes}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      notes: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Add any notes or details..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            );
+          
+          case 'party':
+            return (
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-6">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    What party?
+                  </label>
+                  <input
+                    type="text"
+                    value={eventDetails.event_name}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      event_name: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Enter party name"
+                  />
+                </div>
+          
+                <div className="col-span-6">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <MapPin className="w-4 h-4 inline mr-2" />
+                    Where's the party?
+                  </label>
+                  <input
+                    type="text"
+                    value={eventDetails.event_location}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      event_location: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Drop the pin!"
+                  />
+                </div>
+          
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <LinkIcon className="w-4 h-4 inline mr-2" />
+                    Link to party
+                  </label>
+                  <input
+                    type="url"
+                    value={eventDetails.event_url}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      event_url: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Show your friends where to get tickets!"
+                  />
+                </div>
+          
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <ClipboardList className="w-4 h-4 inline mr-2" />
+                    Additional Details
+                  </label>
+                  <textarea
+                    value={eventDetails.notes}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      notes: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Add any notes or details..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            );
+          
+          case 'family':
+            return (
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <ClipboardList className="w-4 h-4 inline mr-2" />
+                    Additional Details
+                  </label>
+                  <textarea
+                    value={eventDetails.notes}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      notes: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Add any notes or details..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            );
+          
+          case 'work':
+            return (
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Private notes
+                  </label>
+                  <textarea
+                    value={eventDetails.private_notes}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      private_notes: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Add any notes or details..."
+                    rows={3}
+                  />
+                </div>
+          
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <ClipboardList className="w-4 h-4 inline mr-2" />
+                    Additional Details
+                  </label>
+                  <textarea
+                    value={eventDetails.notes}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      notes: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Add any notes or details..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            );
+          
+          case 'other':
+            return (
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <ClipboardList className="w-4 h-4 inline mr-2" />
+                    Additional Details
+                  </label>
+                  <textarea
+                    value={eventDetails.notes}
+                    onChange={(e) => setEventDetails(prev => ({
+                      ...prev,
+                      notes: e.target.value
+                    }))}
+                    className="w-full p-2 text-sm border rounded-md"
+                    placeholder="Add any notes or details..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            );
+              }
+            };
 
   if (!isOpen) return null;
 
@@ -183,14 +645,14 @@ const AvailabilityModal = ({
       onClick={onClose}
     >
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4"
+  initial={{ opacity: 0, scale: 0.95 }}
+  animate={{ opacity: 1, scale: 1 }}
+  exit={{ opacity: 0, scale: 0.95 }}
+  className="bg-white rounded-lg shadow-xl w-[600px] mx-4"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4">
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-semibold">Set Availability</h2>
@@ -204,7 +666,7 @@ const AvailabilityModal = ({
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-6 mt-6">
+          <div className="relative flex gap-1 mt-6">
             {[
               { id: 'when', icon: Calendar, label: 'When' },
               { id: 'status', icon: Plane, label: 'Status' },
@@ -212,22 +674,38 @@ const AvailabilityModal = ({
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-2 py-1 text-sm font-medium ${
-                  activeTab === tab.id 
-                    ? 'text-blue-600 bg-blue-50 rounded-md' 
-                    : 'text-gray-600'
-                }`}
+                onClick={() => {
+                  // Check if button should be clickable
+                  if (tab.id === 'details' && (!selectedDay || !selectedEventType)) {
+                    return; // Do nothing if conditions aren't met
+                  }
+                  if (tab.id === 'status' && !selectedDay && !isBulkSelect) {
+                    return; // Do nothing if conditions aren't met
+                  }
+                  setActiveTab(tab.id);
+                }}
+                className={`
+                  flex items-center gap-2 px-4 py-2 text-sm font-medium
+                  border-t border-l border-r rounded-t-lg relative
+                  transition-all duration-200
+                  ${activeTab === tab.id 
+                    ? 'bg-white text-blue-600 border-gray-200 -mb-px' 
+                    : 'text-gray-600 bg-gray-50 border-transparent hover:bg-gray-100'
+                  }
+                  ${tab.id === 'status' && !selectedDay && !isBulkSelect ? 'opacity-50 cursor-not-allowed' : ''}
+                  ${tab.id === 'details' && (!selectedDay || !selectedEventType) ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
               </button>
             ))}
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gray-200" />
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-8 h-[350px] overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -238,18 +716,35 @@ const AvailabilityModal = ({
               {activeTab === 'when' && (
                 <div className="space-y-4">
                   {/* Privacy Toggle */}
-                  <div className="flex items-center gap-2 mb-6">
-                    <button
-                      onClick={() => setPrivacyLevel(prev => prev === 'private' ? 'public' : 'private')}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm ${
-                        privacyLevel === 'private'
-                          ? 'bg-gray-100 text-gray-700'
-                          : 'bg-blue-50 text-blue-700'
-                      }`}
-                    >
-                      {privacyLevel === 'private' ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
-                      {privacyLevel === 'private' ? 'Private' : 'Public'}
-                    </button>
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2">
+                      {privacyLevel === 'private' ? (
+                        <>
+                          <Lock className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm text-gray-600">Private</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm text-blue-600">Public</span>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setPrivacyLevel(prev => prev === 'private' ? 'public' : 'private')}
+                        className="relative inline-flex h-6 w-11 items-center rounded-full"
+                        style={{
+                          backgroundColor: privacyLevel === 'private' ? '#E5E7EB' : '#3B82F6'
+                        }}
+                      >
+                        <span className="sr-only">Toggle privacy</span>
+                        <span
+                          className={`${
+                            privacyLevel === 'private' ? 'translate-x-1' : 'translate-x-6'
+                          } inline-block h-4 w-4 transform rounded-full bg-white transition`}
+                        />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex gap-6">
@@ -276,27 +771,29 @@ const AvailabilityModal = ({
                     )}
 
                     {/* Calendar */}
-                    <div className="flex-1">
-                      <DatePicker
-                        selected={isBulkSelect ? dateRange[0] : new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay?.day)}
-                        startDate={isBulkSelect ? dateRange[0] : null}
-                        endDate={isBulkSelect ? dateRange[1] : null}
-                        onChange={(date) => {
-                          if (isBulkSelect) {
-                            setDateRange(Array.isArray(date) ? date : [date, null]);
-                          } else {
-                            setSelectedDay(prev => ({
-                              ...prev,
-                              day: new Date(date).getDate()
-                            }));
-                          }
-                        }}
-                        selectsRange={isBulkSelect}
-                        minDate={new Date()}
-                        inline
-                        dayClassName={getDayClassName}
-                        calendarClassName="!border-none !shadow-none !font-normal"
-                      />
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="transform scale-125" style={{ marginLeft: isBulkSelect ? '1' : '-50px', marginTop: '-50px' }}>
+                        <DatePicker
+                          selected={isBulkSelect ? dateRange[0] : new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay?.day)}
+                          startDate={isBulkSelect ? dateRange[0] : null}
+                          endDate={isBulkSelect ? dateRange[1] : null}
+                          onChange={(date) => {
+                            if (isBulkSelect) {
+                              setDateRange(Array.isArray(date) ? date : [date, null]);
+                            } else {
+                              setSelectedDay(prev => ({
+                                ...prev,
+                                day: new Date(date).getDate()
+                              }));
+                            }
+                          }}
+                          selectsRange={isBulkSelect}
+                          minDate={new Date()}
+                          inline
+                          dayClassName={getDayClassName}
+                          calendarClassName="!border-none !shadow-none !font-normal"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -310,9 +807,22 @@ const AvailabilityModal = ({
                       onClick={() => {
                         setPreviousEventType(selectedEventType);
                         setSelectedEventType(type.id);
-                        setShowUndoButton(true);
-                        setTimeout(() => setActiveTab('details'), 300);
-                        setTimeout(() => setShowUndoButton(false), 3000);
+                        
+                        if (type.id === 'open_to_plans') {
+                          // Auto save for "Open to plans"
+                          const savedData = {
+                            eventType: type.id,
+                            privacy_level: privacyLevel,
+                            timeSlot: isBulkSelect ? 'all' : timeSlot,
+                          };
+                          onSave(savedData);
+                          onClose();
+                        } else {
+                          // Normal flow for other statuses
+                          setShowUndoButton(true);
+                          setTimeout(() => setActiveTab('details'), 300);
+                          setTimeout(() => setShowUndoButton(false), 3000);
+                        }
                       }}
                       className={`
                         py-2.5 text-center rounded-md text-sm font-medium transition-colors

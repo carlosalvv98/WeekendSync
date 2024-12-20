@@ -2,12 +2,25 @@ import { supabase } from './supabaseClient';
 
 export const saveAvailability = async (userId, date, timeSlot, status, eventDetails = {}) => {
   try {
+
+    console.log('Save Availability Input:', {
+      userId,
+      date,
+      timeSlot,
+      status,
+      eventDetails
+    });
+
+    if (!['morning', 'afternoon', 'night', 'all'].includes(timeSlot)) {
+      throw new Error(`Invalid time slot: ${timeSlot}`);
+    }
+
     const payload = {
       user_id: userId,
       date: date,
       time_slot: timeSlot,
       status: status,
-      event_type: status === 'busy' ? eventDetails.event_type : null,
+      event_type: eventDetails.event_type || status,
       travel_destination: eventDetails.travel_destination || null,
       restaurant_name: eventDetails.restaurant_name || null,
       restaurant_location: eventDetails.restaurant_location || null,
@@ -18,7 +31,7 @@ export const saveAvailability = async (userId, date, timeSlot, status, eventDeta
       updated_at: new Date().toISOString()
     };
 
-    console.log('Attempting to save with payload:', payload);
+    console.log('Built Payload:', payload);
 
     const { data, error } = await supabase
       .from('availability')
@@ -32,9 +45,10 @@ export const saveAvailability = async (userId, date, timeSlot, status, eventDeta
       throw error;
     }
 
+    console.log('Save successful:', data);
     return data;
   } catch (error) {
-    console.error('Error in saveAvailability:', error);
+    console.error('Full error in saveAvailability:', error);
     throw error;
   }
 };
