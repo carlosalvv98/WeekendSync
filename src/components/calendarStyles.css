@@ -104,8 +104,8 @@
 /* Adjust month header */
 .react-datepicker__header {
   padding: 0rem 0 !important;
-  margin: 10 1rem !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  margin: 50 1rem !important;
+  border-bottom: 1px solid #ebe5e8 !important;
 }
 
 .react-datepicker__current-month {

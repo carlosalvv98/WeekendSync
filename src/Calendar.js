@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, CalendarDays, Info, Copy, Trash2,} from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarDays, Info, Copy, Trash2, X, Check } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import ViewSwitcher from './components/ViewSwitcher';
 import AvailabilityModal from './components/AvailabilityModal';
@@ -12,8 +12,6 @@ import {
 } from './availabilityService';
 import ListView from './components/ListView';
 import CreateActionButton from './components/CreateActionButton';
-
-
 
 
 const Calendar = ({ session }) => {
@@ -538,6 +536,37 @@ const Calendar = ({ session }) => {
         privacy_level: details.privacy_level || 'public'
       };
   
+        if (selectedDates.length > 0) {
+        // Handle multi-selected dates
+        let newAvailability = { ...availability };
+        
+        for (const dateStr of selectedDates) {
+          // Save all time slots for each selected day
+          for (const slot of timeSlots) {
+            await saveAvailability(
+              session.user.id,
+              dateStr,
+              slot,
+              status,
+              eventPayload
+            );
+            
+            if (!newAvailability[dateStr]) {
+              newAvailability[dateStr] = {};
+            }
+            newAvailability[dateStr][slot] = {
+              status,
+              eventType: details.eventType,
+              ...details
+            };
+          }
+        }
+        
+        setAvailability(newAvailability);
+        setSelectedDates([]);
+        setSelectionMode('none');
+      }
+
       if (isBulkSelect && startDate && endDate) {
         // Handle bulk selection
         let currentDate = new Date(startDate);
@@ -747,7 +776,7 @@ const Calendar = ({ session }) => {
 return (
   <>
     <div className="bg-white rounded-lg shadow p-6">
-      {/* Calendar Header */}
+    {/* Calendar Header */}
 <div className="flex flex-col gap-4 mb-6">
   {/* Top row with ViewSwitcher and action buttons */}
   <div className="flex justify-between items-center">
@@ -769,7 +798,7 @@ return (
         onClick={() => setSelectionMode(prev => prev === 'select' ? 'none' : 'select')}
         className={`p-2 px-4 rounded-lg flex items-center gap-2 ${
           selectionMode === 'select' 
-            ? 'bg-blue-100 text-blue-700' 
+            ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-300' 
             : 'bg-purple-100 hover:bg-purple-200'
         }`}
       >
@@ -800,12 +829,66 @@ return (
     </div>
   </div>
 
-  {/* Bottom row with month/year */}
+  {/* Bottom row with month/year and selection controls */}
   {currentView !== 'list' && (
-    <div>
+    <div className="flex justify-between items-center">
       <h2 className="text-2xl font-bold">
         {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
       </h2>
+
+      {selectionMode === 'select' && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Selection Mode</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setSelectionMode('none');
+                setSelectedDates([]);
+              }}
+              className="p-1.5 rounded-full hover:bg-red-50 text-red-500"
+            >
+              <X size={16} />
+            </button>
+
+            <button
+            onClick={() => {
+              if (selectedDates.length > 0) {
+                setIsBulkSelect(true);
+                setShowEventModal(true);
+                setActiveTab('status');  // Go directly to status tab
+                // Set the date range with the selected dates
+                const sortedDates = selectedDates.sort();
+                setDateRange([
+                  new Date(sortedDates[0]), // First selected date
+                  new Date(sortedDates[sortedDates.length - 1]) // Last selected date
+                ]);
+              }
+            }}
+            className="p-1.5 rounded-full hover:bg-green-50 text-green-500"
+          >
+            <Check size={16} />
+          </button>
+
+            <div className="h-6 w-px bg-gray-200"></div>
+
+            <button
+              onClick={() => {
+                if (selectedDates.length > 0) {
+                  // Handle clearing multiple days
+                  for (const dateStr of selectedDates) {
+                    handleDeleteTimeSlot(dateStr);
+                  }
+                  setSelectedDates([]);
+                  setSelectionMode('none');
+                }
+              }}
+              className="p-1.5 px-3 rounded-lg hover:bg-red-100 text-gray-600 hover:text-red-600"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )}
 </div>
@@ -816,7 +899,21 @@ return (
 ) : (
   <>
     {currentView === 'month' ? (
-      <div className="grid grid-cols-7 gap-2">
+      <div 
+      className="grid grid-cols-7 gap-2"
+      onMouseUp={() => {
+        if (isDragging) {
+          setIsDragging(false);
+          setDragStartDay(null);
+        }
+      }}
+      onMouseLeave={() => {
+        if (isDragging) {
+          setIsDragging(false);
+          setDragStartDay(null);
+        }
+      }}
+    >
         {/* Weekday headers */}
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
           <div key={day} className="text-center font-medium text-gray-500">
@@ -844,30 +941,79 @@ return (
                 ${isToday(day) ? 'border-blue-500 border-2' : ''}
                 ${isPastDay(day) && !dayData ? 'bg-gray-50' : ''}
                 ${fullDayEvent ? `${getColorForStatus(dayData?.morning, true)} ${isPastDay(day) ? 'opacity-75' : ''}` : ''}
+                ${selectionMode === 'select' && selectedDates.includes(dateKey) ? 'ring-2 ring-blue-500 border-blue-500' : ''}
                 ${isSelected ? 'border-blue-500 border-2 ring-2 ring-blue-200' : ''}
                 ${isCopySource ? 'border-green-500 border-2 ring-2 ring-green-200' : ''}
-                ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}`}
-              onClick={(e) => {
-                if (copyMode) {
-                  handleDaySelection(day);
-                } else {
-                  handleDayClick(day, e);
-                }
-              }}
-              onMouseDown={() => {
-                if (copyMode) {
-                  setIsDragging(true);
-                  setDragStartDay(day);
-                }
-              }}
-              onMouseEnter={() => {
-                if (isDragging && copyMode) {
-                  handleDaySelection(day);
-                }
-              }}
+                ${copyMode ? 'cursor-pointer hover:border-blue-400' : ''}
+                ${selectionMode === 'select' ? 'cursor-pointer hover:border-blue-300' : ''}`}
+                
+                
+                onClick={(e) => {
+                  if (copyMode) {
+                    handleDaySelection(day);
+                  } else if (selectionMode === 'select') {
+                    // Just handle the click for individual selection, regardless of drag state
+                    const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+                    setSelectedDates(prev => {
+                      const isSelected = prev.includes(dateKey);
+                      return isSelected ? prev.filter(d => d !== dateKey) : [...prev, dateKey];
+                    });
+                  } else {
+                    handleDayClick(day, e);
+                  }
+                }}
+                onMouseDown={(e) => {
+                  if (selectionMode === 'select') {
+                    e.preventDefault(); // Prevent text selection
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const startX = e.clientX - rect.left;
+                    const startY = e.clientY - rect.top;
+                    
+                    const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+                    
+                    // Only start dragging if mouse has moved a bit
+                    const handleMouseMove = (moveEvent) => {
+                      const moveX = moveEvent.clientX - rect.left;
+                      const moveY = moveEvent.clientY - rect.top;
+                      
+                      if (Math.abs(moveX - startX) > 5 || Math.abs(moveY - startY) > 5) {
+                        setIsDragging(true);
+                        setDragStartDay(day);
+                        // Add the first day when drag starts
+                        setSelectedDates(prev => {
+                          if (!prev.includes(dateKey)) {
+                            return [...prev, dateKey];
+                          }
+                          return prev;
+                        });
+                        document.removeEventListener('mousemove', handleMouseMove);
+                      }
+                    };
+                    
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', () => {
+                      document.removeEventListener('mousemove', handleMouseMove);
+                      setIsDragging(false);
+                      setDragStartDay(null);
+                    }, { once: true });
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (isDragging && selectionMode === 'select') {
+                    const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+                    setSelectedDates(prev => {
+                      if (!prev.includes(dateKey)) {
+                        return [...prev, dateKey];
+                      }
+                      return prev;
+                    });
+                  }
+                }}
             >
+
+
               {/* Copy and Delete buttons */}
-              {!copyMode && dayData && (
+              {!copyMode && selectionMode === 'none' && dayData && (
                 <div className="absolute top-1.5 right-1.5 flex items-center space-x-1">
                   <button
                     onClick={(e) => {
@@ -986,6 +1132,7 @@ return (
     existingAvailability={existingAvailabilityData} 
     activeTab={activeTab}
     setActiveTab={setActiveTab}
+    selectedDates={selectedDates} 
   />
 )}
 {/* Past Event Modal */}

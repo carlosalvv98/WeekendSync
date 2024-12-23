@@ -128,7 +128,8 @@ const AvailabilityModal = ({
   existingAvailability = null,
   friends = [],
   activeTab,
-  setActiveTab
+  setActiveTab,
+  selectedDates = []
 }) => {
   // Core state
   const [selectedEventType, setSelectedEventType] = useState(
@@ -186,6 +187,13 @@ const AvailabilityModal = ({
   };
 
   const getTimeDisplay = () => {
+    if (selectedDates?.length > 0) {
+      if (selectedDates.length === 1) {
+        return formatDate(new Date(selectedDates[0]));
+      }
+      return `${selectedDates.length} days selected`;
+    }
+    
     if (isBulkSelect) {
       if (dateRange[0] && dateRange[1]) {
         return `${formatDate(dateRange[0])} - ${formatDate(dateRange[1])}`;
@@ -675,10 +683,10 @@ const AvailabilityModal = ({
                 key={tab.id}
                 onClick={() => {
                   // Check if button should be clickable
-                  if (tab.id === 'details' && (!selectedDay || !selectedEventType)) {
+                  if (tab.id === 'details' && !selectedEventType) {
                     return;
                   }
-                  if (tab.id === 'status' && !selectedDay && !isBulkSelect) {
+                  if (tab.id === 'status' && !selectedDay && !selectedDates?.length && !isBulkSelect) {
                     return; 
                   }
                   setActiveTab(tab.id);
@@ -691,8 +699,8 @@ const AvailabilityModal = ({
                     ? 'bg-blue-50 text-blue-600 border-blue-200 -mb-px' 
                     : 'text-gray-600 bg-gray-100 border-gray-50 hover:bg-gray-200'
                   }
-                  ${tab.id === 'status' && !selectedDay && !isBulkSelect ? 'opacity-50 cursor-not-allowed' : ''}
-                  ${tab.id === 'details' && (!selectedDay || !selectedEventType) ? 'opacity-50 cursor-not-allowed' : ''}
+                  ${tab.id === 'status' && !selectedDay && !selectedDates?.length ? 'opacity-50 cursor-not-allowed' : ''}
+                  ${tab.id === 'details' && !selectedEventType ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
               >
                 <tab.icon className="w-4 h-4" />
@@ -772,26 +780,43 @@ const AvailabilityModal = ({
                     {/* Calendar */}
                     <div className="flex-1 flex items-center justify-center">
                       <div className="transform scale-125" style={{ marginLeft: isBulkSelect ? '1' : '-50px', marginTop: '-50px' }}>
-                        <DatePicker
-                          selected={isBulkSelect ? dateRange[0] : new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay?.day)}
-                          startDate={isBulkSelect ? dateRange[0] : null}
-                          endDate={isBulkSelect ? dateRange[1] : null}
-                          onChange={(date) => {
-                            if (isBulkSelect) {
-                              setDateRange(Array.isArray(date) ? date : [date, null]);
-                            } else {
-                              setSelectedDay(prev => ({
-                                ...prev,
-                                day: new Date(date).getDate()
-                              }));
-                            }
-                          }}
-                          selectsRange={isBulkSelect}
-                          minDate={new Date()}
-                          inline
-                          dayClassName={getDayClassName}
-                          calendarClassName="!border-none !shadow-none !font-normal"
-                        />
+                      <div className="flex-1 flex items-center justify-center">
+                      <div className="transform scale-100" style={{ marginLeft: isBulkSelect ? '100' : '10px', marginTop: '10px' }}>
+                            <DatePicker
+                            selected={null}
+                            onChange={() => {}}
+                            minDate={new Date()}
+                            inline
+                            initialDate={selectedDates?.length > 0 ? new Date(selectedDates[0]) : new Date()}
+                            dayClassName={(date) => {
+                              if (!date) return '';
+                              
+                              // Convert date to string format
+                              const dateStr = date.toISOString().split('T')[0];
+                              
+                              // Check if it's a selected date
+                              if (selectedDates?.includes(dateStr)) {
+                                return 'bg-blue-100 hover:bg-blue-200';
+                              }
+                              
+                              // Handle today's date - simpler check
+                              const today = new Date();
+                              const isToday = date.getDate() === today.getDate() && 
+                                              date.getMonth() === today.getMonth() && 
+                                              date.getFullYear() === today.getFullYear();
+                              
+                              if (isToday) {
+                                return 'text-blue-500 font-normal';
+                              }
+                              
+                              return 'font-normal';  // Default style for all other days
+                            }}
+                            calendarClassName="!border-none !shadow-none !font-normal"
+                            readOnly={true}
+                            showPopperArrow={false}
+                          />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -824,6 +849,9 @@ const AvailabilityModal = ({
                           };
                           onSave(savedData);
                           onClose();
+                        } else if (selectedDates?.length > 0 || selectedDay) {
+                          // Automatically go to details tab if dates are selected
+                          setActiveTab('details');
                         }
                       }}
                       className={`
