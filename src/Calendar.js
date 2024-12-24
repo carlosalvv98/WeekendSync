@@ -476,36 +476,37 @@ const Calendar = ({ session }) => {
     }
   };
 
-  const handleDayClick = (day, e) => {
-    e?.stopPropagation();
-    const clickDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-    const existingData = availability[dateKey];
-    
-    if (isPastDay(clickDate)) {
-      if (availability[dateKey]) {
-        setShowPastEventModal(true);
+    const handleDayClick = (day, e) => {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
       }
-      return;
-    }
-  
-    if (selectionMode === 'select') {
-      // Handle multi-select
-      setSelectedDates(prev => {
-        const isSelected = prev.includes(dateKey);
-        if (isSelected) {
-          return prev.filter(d => d !== dateKey);
-        } else {
-          return [...prev, dateKey];
+      
+      const clickDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+      const existingData = availability[dateKey];
+      
+      // Clear any existing modals first
+      setShowEventModal(false);
+      setShowPastEventModal(false);
+      
+      if (isPastDay(clickDate)) {
+        if (availability[dateKey]) {
+          setShowPastEventModal(true);
+          setSelectedDay({ day });
         }
-      });
-    } else {
-      // Regular single day selection
-      setSelectedDay({ day, timeSlot: 'all' });
-      setExistingAvailabilityData(existingData);
-      setShowEventModal(true);
-      setActiveTab('status');
-    }
+        return;
+      }
+      
+      // Rest of your code remains the same
+      if (selectionMode === 'select') {
+        // ... your selection code
+      } else {
+        setSelectedDay({ day, timeSlot: 'all' });
+        setExistingAvailabilityData(existingData);
+        setShowEventModal(true);
+        setActiveTab('status');
+      }
   };
 
   const handleBulkSelect = () => {
@@ -831,66 +832,94 @@ return (
 
   {/* Bottom row with month/year and selection controls */}
   {currentView !== 'list' && (
+  <div className="flex flex-col gap-4">
     <div className="flex justify-between items-center">
       <h2 className="text-2xl font-bold">
         {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
       </h2>
 
-      {selectionMode === 'select' && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Selection Mode</span>
+      <div className="flex items-center gap-2">
+        {selectionMode === 'select' && (
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setSelectionMode('none');
-                setSelectedDates([]);
-              }}
-              className="p-1.5 rounded-full hover:bg-red-50 text-red-500"
-            >
-              <X size={16} />
-            </button>
-
-            <button
-            onClick={() => {
-              if (selectedDates.length > 0) {
-                setIsBulkSelect(true);
-                setShowEventModal(true);
-                setActiveTab('status');  // Go directly to status tab
-                // Set the date range with the selected dates
-                const sortedDates = selectedDates.sort();
-                setDateRange([
-                  new Date(sortedDates[0]), // First selected date
-                  new Date(sortedDates[sortedDates.length - 1]) // Last selected date
-                ]);
-              }
-            }}
-            className="p-1.5 rounded-full hover:bg-green-50 text-green-500"
-          >
-            <Check size={16} />
-          </button>
-
-            <div className="h-6 w-px bg-gray-200"></div>
-
-            <button
-              onClick={() => {
-                if (selectedDates.length > 0) {
-                  // Handle clearing multiple days
-                  for (const dateStr of selectedDates) {
-                    handleDeleteTimeSlot(dateStr);
-                  }
-                  setSelectedDates([]);
+            <span className="text-sm text-gray-500">Confirm Selection</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
                   setSelectionMode('none');
-                }
-              }}
-              className="p-1.5 px-3 rounded-lg hover:bg-red-100 text-gray-600 hover:text-red-600"
-            >
-              Clear
-            </button>
+                  setSelectedDates([]);
+                }}
+                className="p-1.5 rounded-full hover:bg-red-50 text-red-500"
+              >
+                <X size={16} />
+              </button>
+
+              <button
+                onClick={() => {
+                  if (selectedDates.length > 0) {
+                    setIsBulkSelect(true);
+                    setShowEventModal(true);
+                    setActiveTab('status');
+                    const sortedDates = selectedDates.sort();
+                    setDateRange([
+                      new Date(sortedDates[0]),
+                      new Date(sortedDates[sortedDates.length - 1])
+                    ]);
+                  }
+                }}
+                className="p-1.5 rounded-full hover:bg-green-50 text-green-500"
+              >
+                <Check size={16} />
+              </button>
+
+              <div className="h-6 w-px bg-gray-200"></div>
+
+              <button
+                onClick={() => {
+                  if (selectedDates.length > 0) {
+                    for (const dateStr of selectedDates) {
+                      handleDeleteTimeSlot(dateStr);
+                    }
+                    setSelectedDates([]);
+                    setSelectionMode('none');
+                  }
+                }}
+                className="p-1.5 px-3 rounded-lg hover:bg-red-100 text-gray-600 hover:text-red-600"
+              >
+                Clear
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {copyMode && !selectionMode && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">Confirm Copy</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setCopyMode(false);
+                  setSelectedDays([]);
+                  setCopySource(null);
+                }}
+                className="p-1.5 rounded-full hover:bg-red-50 text-red-500"
+              >
+                <X size={16} />
+              </button>
+
+              <button
+                onClick={handlePaste}
+                className="p-1.5 rounded-full hover:bg-green-50 text-green-500"
+                disabled={selectedDays.length === 0}
+              >
+                <Check size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-  )}
+  </div>
+)}
 </div>
   
         {/* View Container */}
@@ -937,7 +966,7 @@ return (
           return (
             <div 
               key={day} 
-              className={`border rounded-lg h-32 overflow-hidden flex flex-col relative group
+              className={`border rounded-lg h-34 overflow-hidden flex flex-col relative group
                 ${isToday(day) ? 'border-blue-500 border-2' : ''}
                 ${isPastDay(day) && !dayData ? 'bg-gray-50' : ''}
                 ${fullDayEvent ? `${getColorForStatus(dayData?.morning, true)} ${isPastDay(day) ? 'opacity-75' : ''}` : ''}
@@ -1014,7 +1043,7 @@ return (
 
               {/* Copy and Delete buttons */}
               {!copyMode && selectionMode === 'none' && dayData && (
-                <div className="absolute top-1.5 right-1.5 flex items-center space-x-1">
+                <div className="absolute top-1.5 right-1.5 flex items-center space-x-1 z-50">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1039,22 +1068,62 @@ return (
               )}
 
               {/* Day number */}
+              <div className="relative">
               <div className={`p-1 font-medium ${isToday(day) ? 'text-blue-500' : ''} 
                 ${isPastDay(day) ? 'text-gray-400' : ''}`}>
                 {day}
+                {isPastDay(day) && (
+                  <span className="absolute -top-2 right-1 text-red-500 text-[15px] font-medium p-1">
+                    ×
+                  </span>
+                )}
               </div>
+            </div>
                     
               {/* Time slots container */}
               {fullDayEvent ? (
-                <div className="flex-1 p-1 relative group">
-                  <div className="text-xs text-gray-600 truncate">
+              <div className="flex-1 p-1 relative group">
+                <div className="flex flex-col">
+                  <div className="text-xs text-gray-600 font-medium">
                     {dayData.morning?.status === 'open_to_plans' 
                       ? 'Open to plans'
                       : dayData.morning?.eventType && 
                         eventTypes.find(e => e.id === dayData.morning.eventType)?.label}
                   </div>
+                  {dayData.morning?.eventType === 'traveling' && dayData.morning?.travel_destination && (
+                    <div className="text-[10px] text-gray-500 mt-0.5 truncate w-full">
+                      {dayData.morning.travel_destination}
+                    </div>
+                  )}
+                  {dayData.morning?.eventType === 'wedding' && (
+                    <>
+                      {dayData.morning?.wedding_couple && (
+                        <div className="text-[10px] text-gray-500 mt-0.5 truncate w-full">
+                          {dayData.morning.wedding_couple}
+                        </div>
+                      )}
+                      {dayData.morning?.wedding_location && (
+                        <div className="text-[10px] text-gray-500 mt-0.5 truncate w-full">
+                          {dayData.morning.wedding_location}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {(dayData.morning?.eventType === 'lunch' || dayData.morning?.eventType === 'dinner') && 
+                  dayData.morning?.restaurant_name && (
+                    <div className="text-[10px] text-gray-500 mt-0.5 truncate w-full">
+                      {dayData.morning.restaurant_name}
+                    </div>
+                  )}
+                  {(dayData.morning?.eventType === 'event' || dayData.morning?.eventType === 'party') && 
+                  dayData.morning?.event_name && (
+                    <div className="text-[10px] text-gray-500 mt-0.5 truncate w-full">
+                      {dayData.morning.event_name}
+                    </div>
+                  )}
                 </div>
-              ) : (
+              </div>
+            ) : (
                 <div className="flex-1 flex flex-col gap-1 p-1">
                   {timeSlots.map(timeSlot => {
                     const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
@@ -1147,6 +1216,7 @@ return (
       const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day);
       handleDeleteTimeSlot(dateKey);
       setShowPastEventModal(false);
+      setSelectedDay(null);  // Add this line
     }}
     dayData={availability[getDateKey(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day)]}
     date={new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay.day)}
