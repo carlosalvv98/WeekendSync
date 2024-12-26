@@ -149,7 +149,7 @@ const AvailabilityComparisonChart = () => {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-3">Activity Comparison</h3>
+      <h3 className="text-lg font-semibold mb-3">Social Power Rankings</h3>
 
       <div className="flex gap-1 mb-4">
         <MultiSelect

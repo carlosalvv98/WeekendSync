@@ -132,7 +132,7 @@ const SocialDistributionChart = () => {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-3">Best Buddies</h3>
+      <h3 className="text-lg font-semibold mb-3">Activity Mix Mastery</h3>
       
       <div className="flex gap-1 mb-4">
         <MultiSelect
