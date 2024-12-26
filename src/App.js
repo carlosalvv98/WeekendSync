@@ -5,6 +5,8 @@ import AuthPage from './AuthPage';
 import { supabase } from './supabaseClient';
 import Profile from './components/Profile';
 import AdminDashboard from './components/Admin/AdminDashboard';
+import Friends from './components/Friends';
+
 
 
 function App() {
@@ -113,14 +115,9 @@ function App() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto mt-4 p-4">
       {currentPage === 'calendar' && <Calendar session={session} />}
-        {currentPage === 'friends' && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Friends</h2>
-            <div className="text-gray-600">Friends list coming soon...</div>
-          </div>
-        )}
-        {currentPage === 'profile' && <Profile session={session} />}
-        {currentPage === 'admin' && isAdmin && <AdminDashboard session={session} />}
+      {currentPage === 'friends' && <Friends session={session} />}
+      {currentPage === 'profile' && <Profile session={session} />}
+      {currentPage === 'admin' && isAdmin && <AdminDashboard session={session} />}
         </main>
     </div>
   );
