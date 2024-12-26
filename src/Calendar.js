@@ -831,93 +831,75 @@ return (
   </div>
 
   {/* Bottom row with month/year and selection controls */}
-  {currentView !== 'list' && (
-  <div className="flex flex-col gap-4">
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl font-bold">
-        {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-      </h2>
+{currentView !== 'list' && (
+  <div className="flex justify-between items-center">
+    <h2 className="text-2xl font-bold">
+      {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+    </h2>
 
+    {(selectionMode === 'select' || copyMode) && (
       <div className="flex items-center gap-2">
-        {selectionMode === 'select' && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Confirm Selection</span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setSelectionMode('none');
-                  setSelectedDates([]);
-                }}
-                className="p-1.5 rounded-full hover:bg-red-50 text-red-500"
-              >
-                <X size={16} />
-              </button>
+        <span className="text-sm text-gray-500">
+          {selectionMode === 'select' ? 'Selection Mode' : 'Copy Mode'}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (selectionMode === 'select') {
+                setSelectionMode('none');
+                setSelectedDates([]);
+              } else {
+                setCopyMode(false);
+                setSelectedDays([]);
+                setCopySource(null);
+              }
+            }}
+            className="p-1.5 rounded-full hover:bg-red-50 text-red-500"
+          >
+            <X size={16} />
+          </button>
 
-              <button
-                onClick={() => {
-                  if (selectedDates.length > 0) {
-                    setIsBulkSelect(true);
-                    setShowEventModal(true);
-                    setActiveTab('status');
-                    const sortedDates = selectedDates.sort();
-                    setDateRange([
-                      new Date(sortedDates[0]),
-                      new Date(sortedDates[sortedDates.length - 1])
-                    ]);
-                  }
-                }}
-                className="p-1.5 rounded-full hover:bg-green-50 text-green-500"
-              >
-                <Check size={16} />
-              </button>
+          <button
+            onClick={() => {
+              if (selectionMode === 'select') {
+                if (selectedDates.length > 0) {
+                  setIsBulkSelect(true);
+                  setShowEventModal(true);
+                  setActiveTab('status');
+                  const sortedDates = selectedDates.sort();
+                  setDateRange([
+                    new Date(sortedDates[0]),
+                    new Date(sortedDates[sortedDates.length - 1])
+                  ]);
+                }
+              } else {
+                handlePaste();
+              }
+            }}
+            className="p-1.5 rounded-full hover:bg-green-50 text-green-500"
+          >
+            <Check size={16} />
+          </button>
 
-              <div className="h-6 w-px bg-gray-200"></div>
+          <div className="h-6 w-px bg-gray-200"></div>
 
-              <button
-                onClick={() => {
-                  if (selectedDates.length > 0) {
-                    for (const dateStr of selectedDates) {
-                      handleDeleteTimeSlot(dateStr);
-                    }
-                    setSelectedDates([]);
-                    setSelectionMode('none');
-                  }
-                }}
-                className="p-1.5 px-3 rounded-lg hover:bg-red-100 text-gray-600 hover:text-red-600"
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-        )}
-
-        {copyMode && !selectionMode && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Confirm Copy</span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setCopyMode(false);
-                  setSelectedDays([]);
-                  setCopySource(null);
-                }}
-                className="p-1.5 rounded-full hover:bg-red-50 text-red-500"
-              >
-                <X size={16} />
-              </button>
-
-              <button
-                onClick={handlePaste}
-                className="p-1.5 rounded-full hover:bg-green-50 text-green-500"
-                disabled={selectedDays.length === 0}
-              >
-                <Check size={16} />
-              </button>
-            </div>
-          </div>
-        )}
+          <button
+            onClick={() => {
+              if (selectionMode === 'select' && selectedDates.length > 0) {
+                for (const dateStr of selectedDates) {
+                  handleDeleteTimeSlot(dateStr);
+                }
+                setSelectedDates([]);
+                setSelectionMode('none');
+              }
+            }}
+            className="p-1.5 px-3 rounded-lg hover:bg-red-100 text-gray-600 hover:text-red-600"
+          >
+            Clear
+          </button>
+        </div>
       </div>
-    </div>
+    )}
   </div>
 )}
 </div>
@@ -979,9 +961,10 @@ return (
                 
                 onClick={(e) => {
                   if (copyMode) {
-                    handleDaySelection(day);
+                    if (!isDragging) {
+                      handleDaySelection(day);
+                    }
                   } else if (selectionMode === 'select') {
-                    // Just handle the click for individual selection, regardless of drag state
                     const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
                     setSelectedDates(prev => {
                       const isSelected = prev.includes(dateKey);
@@ -992,15 +975,12 @@ return (
                   }
                 }}
                 onMouseDown={(e) => {
-                  if (selectionMode === 'select') {
-                    e.preventDefault(); // Prevent text selection
+                  if (selectionMode === 'select' || copyMode) {
+                    e.preventDefault();
                     const rect = e.currentTarget.getBoundingClientRect();
                     const startX = e.clientX - rect.left;
                     const startY = e.clientY - rect.top;
                     
-                    const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-                    
-                    // Only start dragging if mouse has moved a bit
                     const handleMouseMove = (moveEvent) => {
                       const moveX = moveEvent.clientX - rect.left;
                       const moveY = moveEvent.clientY - rect.top;
@@ -1008,13 +988,17 @@ return (
                       if (Math.abs(moveX - startX) > 5 || Math.abs(moveY - startY) > 5) {
                         setIsDragging(true);
                         setDragStartDay(day);
-                        // Add the first day when drag starts
-                        setSelectedDates(prev => {
-                          if (!prev.includes(dateKey)) {
-                            return [...prev, dateKey];
-                          }
-                          return prev;
-                        });
+                        if (copyMode) {
+                          handleDaySelection(day);
+                        } else {
+                          const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+                          setSelectedDates(prev => {
+                            if (!prev.includes(dateKey)) {
+                              return [...prev, dateKey];
+                            }
+                            return prev;
+                          });
+                        }
                         document.removeEventListener('mousemove', handleMouseMove);
                       }
                     };
@@ -1028,14 +1012,18 @@ return (
                   }
                 }}
                 onMouseEnter={() => {
-                  if (isDragging && selectionMode === 'select') {
-                    const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
-                    setSelectedDates(prev => {
-                      if (!prev.includes(dateKey)) {
-                        return [...prev, dateKey];
-                      }
-                      return prev;
-                    });
+                  if (isDragging && (selectionMode === 'select' || copyMode)) {
+                    if (copyMode) {
+                      handleDaySelection(day);
+                    } else {
+                      const dateKey = getDateKey(currentDate.getFullYear(), currentDate.getMonth(), day);
+                      setSelectedDates(prev => {
+                        if (!prev.includes(dateKey)) {
+                          return [...prev, dateKey];
+                        }
+                        return prev;
+                      });
+                    }
                   }
                 }}
             >

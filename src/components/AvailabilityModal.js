@@ -781,40 +781,37 @@ const AvailabilityModal = ({
                     <div className="flex-1 flex items-center justify-center">
                       <div className="transform scale-125" style={{ marginLeft: isBulkSelect ? '1' : '-50px', marginTop: '-50px' }}>
                       <div className="flex-1 flex items-center justify-center">
-                      <div className="transform scale-100" style={{ marginLeft: isBulkSelect ? '100' : '10px', marginTop: '10px' }}>
-                            <DatePicker
-                            selected={null}
-                            onChange={() => {}}
-                            minDate={new Date()}
-                            inline
-                            initialDate={selectedDates?.length > 0 ? new Date(selectedDates[0]) : new Date()}
-                            dayClassName={(date) => {
-                              if (!date) return '';
-                              
-                              // Convert date to string format
-                              const dateStr = date.toISOString().split('T')[0];
-                              
-                              // Check if it's a selected date
-                              if (selectedDates?.includes(dateStr)) {
-                                return 'bg-blue-100 hover:bg-blue-200';
-                              }
-                              
-                              // Handle today's date - simpler check
-                              const today = new Date();
-                              const isToday = date.getDate() === today.getDate() && 
-                                              date.getMonth() === today.getMonth() && 
-                                              date.getFullYear() === today.getFullYear();
-                              
-                              if (isToday) {
-                                return 'text-blue-500 font-normal';
-                              }
-                              
-                              return 'font-normal';  // Default style for all other days
-                            }}
-                            calendarClassName="!border-none !shadow-none !font-normal"
-                            readOnly={true}
-                            showPopperArrow={false}
-                          />
+                      <div className="transform scale-100" style={{ marginLeft: isBulkSelect ? '100' : '50px', marginTop: '50px' }}>
+                      <DatePicker
+  selected={null}
+  onChange={() => {}}
+  minDate={new Date()}
+  inline
+  initialDate={selectedDates?.length > 0 ? new Date(selectedDates[0]) : new Date()}
+  dayClassName={(date) => {
+    if (!date) return '';
+    
+    const dateStr = date.toISOString().split('T')[0];
+    
+    if (selectedDates?.includes(dateStr)) {
+      return 'bg-blue-100 hover:bg-blue-200';
+    }
+    
+    const today = new Date();
+    const isToday = date.getDate() === today.getDate() && 
+                    date.getMonth() === today.getMonth() && 
+                    date.getFullYear() === today.getFullYear();
+    
+    if (isToday) {
+      return 'text-blue-500 font-normal';
+    }
+    
+    return 'font-normal';
+  }}
+  calendarClassName="!border-none !shadow-none !font-normal focus:outline-none"
+  readOnly={true}
+  showPopperArrow={false}
+/>
                           </div>
                         </div>
                       </div>

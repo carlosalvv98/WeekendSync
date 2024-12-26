@@ -113,3 +113,23 @@
   font-weight: 500 !important;
   color: #374151 !important;
 }
+
+/* Remove all react-datepicker__day--keyboard-selected styles */
+.react-datepicker__day--keyboard-selected {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+/* Today's date styling - only outline and blue text */
+.react-datepicker__day--today {
+  border: 2px solid #3b82f6 !important;
+  background-color: transparent !important;
+  color: #3b82f6 !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Remove focus outlines */
+.react-datepicker__navigation:focus,
+.react-datepicker__navigation-icon:focus {
+  outline: none !important;
+}
