@@ -7,13 +7,12 @@ import Profile from './components/Profile';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import Friends from './components/Friends';
 
-
-
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('calendar');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userSubscription, setUserSubscription] = useState(null);
 
   useEffect(() => {
     // Get initial session
@@ -21,6 +20,7 @@ function App() {
       setSession(session);
       if (session) {
         checkIfAdmin(session.user.id);
+        checkSubscription(session.user.id);
       }
       setLoading(false);
     });
@@ -58,6 +58,25 @@ function App() {
     }
   };
 
+  const checkSubscription = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          *,
+          subscription_plans (*)
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
+  
+      if (error) throw error;
+      setUserSubscription(data);
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-100">
@@ -78,35 +97,35 @@ function App() {
           <div className="p-4 flex justify-between items-center">
             <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">WeekendSync</h1>
             <div className="flex space-x-4">
-  <button 
-    onClick={() => setCurrentPage('calendar')}
-    className={`p-2 rounded-lg ${currentPage === 'calendar' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-  >
-    <CalendarIcon size={24} className="text-gray-600" />
-  </button>
+              <button 
+                onClick={() => setCurrentPage('calendar')}
+                className={`p-2 rounded-lg ${currentPage === 'calendar' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+              >
+                <CalendarIcon size={24} className="text-gray-600" />
+              </button>
 
-  <button 
-    onClick={() => setCurrentPage('friends')}
-    className={`p-2 rounded-lg ${currentPage === 'friends' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-  >
-    <Users size={24} className="text-gray-600" />
-  </button>
+              <button 
+                onClick={() => setCurrentPage('friends')}
+                className={`p-2 rounded-lg ${currentPage === 'friends' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+              >
+                <Users size={24} className="text-gray-600" />
+              </button>
 
-  <button 
-    onClick={() => setCurrentPage('profile')}
-    className={`p-2 rounded-lg ${currentPage === 'profile' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-  >
-    <User size={24} className="text-gray-600" />
-  </button>
+              <button 
+                onClick={() => setCurrentPage('profile')}
+                className={`p-2 rounded-lg ${currentPage === 'profile' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+              >
+                <User size={24} className="text-gray-600" />
+              </button>
 
-  {isAdmin && (
-    <button 
-      onClick={() => setCurrentPage('admin')}
-      className={`p-2 rounded-lg ${currentPage === 'admin' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-    >
-      <Shield size={24} className="text-gray-600" />
-    </button>
-  )}
+              {isAdmin && (
+                <button 
+                  onClick={() => setCurrentPage('admin')}
+                  className={`p-2 rounded-lg ${currentPage === 'admin' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                >
+                  <Shield size={24} className="text-gray-600" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -114,11 +133,15 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto mt-4 p-4">
-      {currentPage === 'calendar' && <Calendar session={session} />}
-      {currentPage === 'friends' && <Friends session={session} />}
-      {currentPage === 'profile' && <Profile session={session} />}
-      {currentPage === 'admin' && isAdmin && <AdminDashboard session={session} />}
-        </main>
+        {currentPage === 'calendar' && 
+          <Calendar session={session} subscription={userSubscription} />}
+        {currentPage === 'friends' && 
+          <Friends session={session} subscription={userSubscription} />}
+        {currentPage === 'profile' && 
+          <Profile session={session} subscription={userSubscription} />}
+        {currentPage === 'admin' && isAdmin && 
+          <AdminDashboard session={session} />}
+      </main>
     </div>
   );
 }
