@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, User, Users, Shield } from 'lucide-react';
+import { Calendar as CalendarIcon, User, Users, Shield, Bell } from 'lucide-react';
 import Calendar from './Calendar';
 import AuthPage from './AuthPage';
 import { supabase } from './supabaseClient';
 import Profile from './components/Profile';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import Friends from './components/Friends';
+import NotificationsModal from './components/NotificationsModal';
+
+
 
 function App() {
   const [session, setSession] = useState(null);
@@ -13,6 +16,9 @@ function App() {
   const [currentPage, setCurrentPage] = useState('calendar');
   const [isAdmin, setIsAdmin] = useState(false);
   const [userSubscription, setUserSubscription] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   useEffect(() => {
     // Get initial session
@@ -21,6 +27,7 @@ function App() {
       if (session) {
         checkIfAdmin(session.user.id);
         checkSubscription(session.user.id);
+        fetchNotifications(session.user.id);
       }
       setLoading(false);
     });
@@ -77,6 +84,23 @@ function App() {
     }
   };
 
+  const fetchNotifications = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('read', false)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setNotifications(data || []);
+      setNotificationCount(data?.length || 0);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-100">
@@ -97,6 +121,18 @@ function App() {
           <div className="p-4 flex justify-between items-center">
             <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">WeekendSync</h1>
             <div className="flex space-x-4">
+              <button 
+                onClick={() => setShowNotifications(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 relative"
+              >
+                <Bell size={24} className="text-gray-600" />
+                {notificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
+                    {notificationCount}
+                  </span>
+                )}
+              </button>
+
               <button 
                 onClick={() => setCurrentPage('calendar')}
                 className={`p-2 rounded-lg ${currentPage === 'calendar' ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
@@ -131,6 +167,19 @@ function App() {
         </div>
       </nav>
 
+      {showNotifications && (
+  <NotificationsModal
+    isOpen={showNotifications}
+    onClose={() => setShowNotifications(false)}
+    notifications={notifications}
+    onNotificationRead={(notificationId) => {
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      setNotificationCount(prev => prev - 1);
+    }}
+    session={session}
+  />
+)}
+
       {/* Main Content */}
       <main className="max-w-6xl mx-auto mt-4 p-4">
         {currentPage === 'calendar' && 
@@ -143,6 +192,7 @@ function App() {
           <AdminDashboard session={session} />}
       </main>
     </div>
+    
   );
 }
 

@@ -134,7 +134,7 @@ const SocialDistributionChart = () => {
     <div>
       <h3 className="text-lg font-semibold mb-3">Activity Mix Mastery</h3>
       
-      <div className="flex gap-1 mb-4">
+      <div className="flex gap-2 mb-4">
         <MultiSelect
           options={[
             { value: 'year', label: 'This Year' },
