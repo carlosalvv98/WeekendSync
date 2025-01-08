@@ -30,6 +30,36 @@ WeekendSync is a modern social calendar application designed to simplify weekend
 
 ## 🔧 Technical Architecture
 
+### Project Structure
+
+```
+weekend-sync/
+├── src/
+│   ├── components/
+│   │   ├── Admin/
+│   │   │   └── AdminDashboard.js
+│   │   ├── Friends/
+│   │   │   ├── components/
+│   │   │   │   ├── AvailabilityComparisonChart.js
+│   │   │   │   ├── AvailabilitySidebar.js
+│   │   │   │   ├── FriendsCalendar.js
+│   │   │   │   ├── GroupView.js
+│   │   │   │   ├── SocialDistributionChart.js
+│   │   │   │   └── TierSelector.js
+│   │   │   └── index.js
+│   │   ├── AvailabilityModal.js
+│   │   ├── EventDetailsModal.js
+│   │   ├── ListView.js
+│   │   ├── PastEventModal.js
+│   │   ├── Profile.js
+│   │   ├── ShortcutsModal.js
+│   │   └── ViewSwitcher.js
+│   ├── App.js
+│   ├── AuthPage.js
+│   ├── Calendar.js
+│   └── supabaseClient.js
+```
+
 ### Core Components
 
 #### `App.js`
@@ -54,6 +84,39 @@ Handles user authentication with:
 - Form validation
 
 ### Feature Components
+
+#### Friends Module
+The Friends section contains components for social features and friend management:
+
+##### `Friends/components/AvailabilityComparisonChart.js`
+- Visualizes availability comparisons between users
+- Shows activity stats and trends
+- Filterable by time periods and event types
+
+##### `Friends/components/AvailabilitySidebar.js`
+- Shows available friends for selected time periods
+- Displays upcoming events
+- Quick filters for availability view
+
+##### `Friends/components/FriendsCalendar.js`
+- Calendar view optimized for viewing friends' availability
+- Multiple view options (month/week)
+- Visual indicators for friend availability
+
+##### `Friends/components/GroupView.js`
+- Manages friend groups and circles
+- Group creation and management interface
+- Member management
+
+##### `Friends/components/SocialDistributionChart.js`
+- Analytics for social activity distribution
+- Visual breakdown of event types
+- Social activity trends
+
+##### `Friends/components/TierSelector.js`
+- Interface for managing friend tiers
+- Permission management
+- Customizable tier settings
 
 #### `Profile.js`
 User profile management:
@@ -122,11 +185,10 @@ Database connection and configuration
 
 ## 📱 Mobile Responsiveness
 
-The app should be designed to be fully responsive across:
+The app is designed to be fully responsive across:
 - Desktop
 - Tablet
 - Mobile devices
-right now, it is only available via React web.
 
 ## 🔒 Security Features
 
