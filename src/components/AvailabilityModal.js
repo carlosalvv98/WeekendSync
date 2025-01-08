@@ -925,7 +925,7 @@ const AvailabilityModal = ({
                   onSave(savedData);
                   onClose();
                 }}
-                disabled={!selectedEventType || !selectedDay?.day}
+                disabled={!selectedEventType || (!selectedDay?.day && selectedDates.length === 0)}
                 className={`px-6 py-2 rounded-md text-sm font-medium transition-colors
                   ${!selectedEventType || !selectedDay?.day
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
