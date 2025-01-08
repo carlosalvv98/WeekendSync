@@ -209,19 +209,36 @@ The app is designed to be fully responsive across:
 ## 💡 Getting Started
 
 1. Clone the repository
-2. Install dependencies:
+   ```bash
+   git clone https://github.com/your-username/weekend-sync.git
+   cd weekend-sync
+   ```
+
+2. Install dependencies
    ```bash
    npm install
    ```
-3. Set up environment variables:
+
+3. Set up Supabase
+   - Create a free account at [Supabase](https://supabase.com)
+   - Create a new project
+   - Go to Project Settings -> API
+   - Copy your project URL and anon key
+
+4. Create a `.env` file in the project root
    ```env
-   REACT_APP_SUPABASE_URL=your_supabase_url
-   REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+   REACT_APP_SUPABASE_URL=your_project_url
+   REACT_APP_SUPABASE_ANON_KEY=your_anon_key
    ```
-4. Start the development server:
+
+5. Start the development server
    ```bash
    npm start
    ```
+
+6. Open [http://localhost:3000](http://localhost:3000) to view the app
+
+The app will now prompt you to create an account or sign in!
 
 ## 🤝 Contributing
 
