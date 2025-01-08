@@ -1,4 +1,4 @@
-# WeekendSync
+# WeekendSync (Name is NOT final - it's a draft)
 
 WeekendSync is a modern social calendar application designed to simplify weekend planning among friends and family. The app allows users to share their availability, coordinate events, and keep track of social activities in an intuitive interface.
 
