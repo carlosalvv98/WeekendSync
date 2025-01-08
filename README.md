@@ -1,70 +1,232 @@
-# Getting Started with Create React App
+# WeekendSync (Name is NOT final - it's a draft)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+WeekendSync is a modern social calendar application designed to simplify weekend planning among friends and family. The app allows users to share their availability, coordinate events, and keep track of social activities in an intuitive interface.
 
-## Available Scripts
+## 🌟 Features
 
-In the project directory, you can run:
+### Core Features
+- **Smart Calendar Management**
+  - View availability in monthly, weekly, and list views
+  - Quick availability setting for morning, afternoon, and night time slots
+  - Bulk selection and date range scheduling
+  - Copy/paste availability between days
 
-### `npm start`
+### Social Features
+- **Friend Management**
+  - Add friends via SMS or shareable links
+  - Organize friends into different tiers with customizable permissions
+  - View friends' availability and travel plans
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Event Types
+- Open to plans
+- Traveling
+- Lunch/Dinner plans
+- Events
+- Weddings
+- Parties
+- Family time
+- Work
+- Other
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🔧 Technical Architecture
 
-### `npm test`
+### Project Structure
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```
+weekend-sync/
+├── src/
+│   ├── components/
+│   │   ├── Admin/
+│   │   │   └── AdminDashboard.js
+│   │   ├── Friends/
+│   │   │   ├── components/
+│   │   │   │   ├── AvailabilityComparisonChart.js
+│   │   │   │   ├── AvailabilitySidebar.js
+│   │   │   │   ├── FriendsCalendar.js
+│   │   │   │   ├── GroupView.js
+│   │   │   │   ├── SocialDistributionChart.js
+│   │   │   │   └── TierSelector.js
+│   │   │   └── index.js
+│   │   ├── AvailabilityModal.js
+│   │   ├── EventDetailsModal.js
+│   │   ├── ListView.js
+│   │   ├── PastEventModal.js
+│   │   ├── Profile.js
+│   │   ├── ShortcutsModal.js
+│   │   └── ViewSwitcher.js
+│   ├── App.js
+│   ├── AuthPage.js
+│   ├── Calendar.js
+│   └── supabaseClient.js
+```
 
-### `npm run build`
+### Core Components
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+#### `App.js`
+The main application component that handles:
+- Authentication state
+- Navigation between different views
+- Admin access control
+- Overall layout structure
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+#### `Calendar.js`
+The primary calendar interface with:
+- Multiple view options (month, week, list)
+- Drag-and-drop selection
+- Availability management
+- Event details viewing
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+#### `AuthPage.js`
+Handles user authentication with:
+- Sign in/sign up flows
+- Password reset functionality
+- Username availability checking
+- Form validation
 
-### `npm run eject`
+### Feature Components
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+#### Friends Module
+The Friends section contains components for social features and friend management:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+##### `Friends/components/AvailabilityComparisonChart.js`
+- Visualizes availability comparisons between users
+- Shows activity stats and trends
+- Filterable by time periods and event types
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+##### `Friends/components/AvailabilitySidebar.js`
+- Shows available friends for selected time periods
+- Displays upcoming events
+- Quick filters for availability view
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+##### `Friends/components/FriendsCalendar.js`
+- Calendar view optimized for viewing friends' availability
+- Multiple view options (month/week)
+- Visual indicators for friend availability
 
-## Learn More
+##### `Friends/components/GroupView.js`
+- Manages friend groups and circles
+- Group creation and management interface
+- Member management
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+##### `Friends/components/SocialDistributionChart.js`
+- Analytics for social activity distribution
+- Visual breakdown of event types
+- Social activity trends
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+##### `Friends/components/TierSelector.js`
+- Interface for managing friend tiers
+- Permission management
+- Customizable tier settings
 
-### Code Splitting
+#### `Profile.js`
+User profile management:
+- Personal information updates
+- Avatar upload
+- Personality trait selection
+- Location setting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+#### `ListView.js`
+Alternative calendar view with:
+- Filterable event list
+- Detailed event information
+- Date range selection
+- Event type filtering
 
-### Analyzing the Bundle Size
+#### `AvailabilityModal.js`
+Complex modal for setting availability:
+- Time slot selection
+- Event type choosing
+- Additional event details
+- Privacy settings
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Utility Components
 
-### Making a Progressive Web App
+#### `ViewSwitcher.js`
+Toggle between different calendar views:
+- Month view
+- Week view
+- List view
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+#### `ShortcutsModal.js`
+Keyboard shortcuts interface for power users
 
-### Advanced Configuration
+#### `PastEventModal.js`
+View and manage past events
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### Service Layer
 
-### Deployment
+#### `availabilityService.js`
+Handles all availability-related operations:
+- Save/update availability
+- Fetch user availability
+- Delete availability entries
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+#### `supabaseClient.js`
+Database connection and configuration
 
-### `npm run build` fails to minify
+## 🎨 UI/UX Features
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Modern, clean interface
+- Responsive design
+- Dark mode support
+- Intuitive drag-and-drop interactions
+- Clear visual feedback for user actions
+- Accessible color schemes
+
+## 🏗️ Technical Stack
+
+- **Frontend:** React.js with Hooks
+- **Styling:** Tailwind CSS
+- **Database:** Supabase
+- **Icons:** Lucide React
+- **Date Handling:** React DatePicker
+- **Charts:** Recharts
+- **Animations:** Framer Motion
+
+## 📱 Mobile Responsiveness
+
+The app is designed to be fully responsive across:
+- Desktop
+- Tablet
+- Mobile devices
+
+## 🔒 Security Features
+
+- JWT-based authentication
+- Secure password handling
+- Privacy controls for sharing availability
+- Role-based access control
+
+## 🚀 Future Roadmap
+
+- Integration with popular calendar services (Google Calendar, Outlook)
+- Event booking integrations (OpenTable, Eventbrite)
+- Mobile apps for iOS and Android
+- Advanced group planning features
+- Social features similar to Facebook's original "poke"
+- Gamification elements for user engagement
+
+## 💡 Getting Started
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   ```env
+   REACT_APP_SUPABASE_URL=your_supabase_url
+   REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+4. Start the development server:
+   ```bash
+   npm start
+   ```
+
+## 🤝 Contributing
+
+We welcome contributions! Please read our contributing guidelines before submitting pull requests.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
