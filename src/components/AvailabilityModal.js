@@ -914,27 +914,27 @@ const AvailabilityModal = ({
                 </button>
               )}
 
-              <button
-                onClick={() => {
-                  const savedData = {
-                    eventType: selectedEventType,
-                    privacy_level: privacyLevel,
-                    timeSlot: isBulkSelect ? 'all' : timeSlot,
-                    ...eventDetails
-                  };
-                  onSave(savedData);
-                  onClose();
-                }}
-                disabled={!selectedEventType || (!selectedDay?.day && selectedDates.length === 0)}
-                className={`px-6 py-2 rounded-md text-sm font-medium transition-colors
-                  ${!selectedEventType || !selectedDay?.day
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }
-                `}
-              >
-                Save
-              </button>
+            <button
+              onClick={() => {
+                const savedData = {
+                  eventType: selectedEventType,
+                  privacy_level: privacyLevel,
+                  timeSlot: isBulkSelect ? 'all' : timeSlot,
+                  ...eventDetails
+                };
+                onSave(savedData);
+                onClose();
+              }}
+              disabled={!selectedEventType || (!selectedDay?.day && selectedDates.length === 0)}
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors
+                ${!selectedEventType || (!selectedDay?.day && selectedDates.length === 0)
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                }
+              `}
+            >
+              Save
+            </button>
             </div>
           </div>
         </div>
